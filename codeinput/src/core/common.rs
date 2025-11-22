@@ -4,8 +4,6 @@ use ignore::Walk;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
-use super::types::CodeownersEntry;
-
 /// Maximum recursion depth for finding CODEOWNERS files (prevents stack overflow on deep structures)
 const MAX_RECURSION_DEPTH: usize = 100;
 

@@ -4,6 +4,7 @@ use std::fs;
 use tempfile::TempDir;
 
 /// Get the CLI command for testing
+#[allow(deprecated)]
 fn ci() -> Command {
     Command::cargo_bin("ci").unwrap()
 }
