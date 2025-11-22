@@ -1,6 +1,6 @@
 use crate::{
     core::{
-        cache::{build_cache, load_cache, store_cache},
+        cache::{build_cache, store_cache},
         common::{find_codeowners_files, find_files, get_repo_hash},
         parser::parse_codeowners,
         types::{CacheEncoding, CodeownersEntry},
@@ -45,9 +45,6 @@ pub fn run(
 
     // Store the cache in the specified file
     store_cache(&cache, &cache_file, encoding)?;
-
-    // Test the cache by loading it back
-    let _cache = load_cache(&cache_file)?;
 
     Ok(())
 }

@@ -5,7 +5,7 @@ use crate::{
         resolver::find_owners_and_tags_for_file,
         types::{
             codeowners_entry_to_matcher, CacheEncoding, CodeownersCache, CodeownersEntry,
-            CodeownersEntryMatcher, FileEntry,
+            CodeownersEntryMatcher, FileEntry, CACHE_VERSION,
         },
     },
     utils::error::{Error, Result},
@@ -121,6 +121,7 @@ pub fn build_cache(
     }
 
     Ok(CodeownersCache {
+        version: CACHE_VERSION,
         hash,
         entries,
         files: file_entries,
@@ -219,13 +220,24 @@ pub fn sync_cache(
     }
 
     // Load the cache from the specified file
-    let cache = load_cache(&repo.join(cache_file)).map_err(|e| {
-        crate::utils::error::Error::new(&format!(
-            "Failed to load cache from {}: {}",
-            cache_file.display(),
-            e
-        ))
-    })?;
+    let cache = match load_cache(&repo.join(cache_file)) {
+        Ok(cache) => cache,
+        Err(e) => {
+            // Cache is corrupted or incompatible format - rebuild it
+            log::info!("Cache could not be loaded ({}), rebuilding...", e);
+            return parse_repo(repo, cache_file);
+        }
+    };
+
+    // Check cache version - rebuild if outdated
+    if cache.version != CACHE_VERSION {
+        log::info!(
+            "Cache version mismatch (found v{}, expected v{}), rebuilding...",
+            cache.version,
+            CACHE_VERSION
+        );
+        return parse_repo(repo, cache_file);
+    }
 
     // verify the hash of the cache matches the current repo hash
     let current_hash = get_repo_hash(repo)?;
@@ -233,7 +245,7 @@ pub fn sync_cache(
 
     if cache_hash != current_hash {
         // parse the codeowners files and build the cache
-        return parse_repo(&repo, &cache_file);
+        return parse_repo(repo, cache_file);
     } else {
         return Ok(cache);
     }

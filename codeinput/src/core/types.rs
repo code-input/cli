@@ -249,10 +249,19 @@ pub struct FileEntry {
     pub tags: Vec<Tag>,
 }
 
+/// Current cache format version. Increment when making breaking changes.
+pub const CACHE_VERSION: u32 = 1;
+
 /// Pre-computed cache of CODEOWNERS information for fast lookups.
 ///
 /// The cache stores parsed CODEOWNERS rules, file ownership mappings,
 /// and reverse lookup indexes for efficient querying.
+///
+/// # Cache Versioning
+///
+/// The cache includes a version field to detect incompatible formats.
+/// When loading an older cache version, the cache is automatically
+/// rebuilt to ensure compatibility.
 ///
 /// # Cache Invalidation
 ///
@@ -263,6 +272,8 @@ pub struct FileEntry {
 /// - Unstaged file changes (excluding cache files themselves)
 #[derive(Debug)]
 pub struct CodeownersCache {
+    /// Cache format version for compatibility checking
+    pub version: u32,
     /// SHA-256 hash of the repository state for cache invalidation
     pub hash: [u8; 32],
     /// All parsed CODEOWNERS entries
@@ -282,7 +293,8 @@ impl Serialize for CodeownersCache {
     {
         use serde::ser::SerializeStruct;
 
-        let mut state = serializer.serialize_struct("CodeownersCache", 4)?;
+        let mut state = serializer.serialize_struct("CodeownersCache", 6)?;
+        state.serialize_field("version", &self.version)?;
         state.serialize_field("hash", &self.hash)?;
         state.serialize_field("entries", &self.entries)?;
         state.serialize_field("files", &self.files)?;
@@ -307,6 +319,7 @@ impl<'de> Deserialize<'de> for CodeownersCache {
     {
         #[derive(Deserialize)]
         struct CodeownersCacheHelper {
+            version: u32,
             hash: [u8; 32],
             entries: Vec<CodeownersEntry>,
             files: Vec<FileEntry>,
@@ -328,6 +341,7 @@ impl<'de> Deserialize<'de> for CodeownersCache {
         }
 
         Ok(CodeownersCache {
+            version: helper.version,
             hash: helper.hash,
             entries: helper.entries,
             files: helper.files,
