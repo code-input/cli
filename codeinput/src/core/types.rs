@@ -20,7 +20,25 @@ fn normalize_codeowners_pattern(pattern: &str) -> String {
     }
 }
 
-/// CODEOWNERS entry with source tracking
+/// A parsed CODEOWNERS entry representing a single ownership rule.
+///
+/// Each entry corresponds to a line in a CODEOWNERS file that defines
+/// which teams or individuals own files matching a specific pattern.
+///
+/// # Fields
+///
+/// * `source_file` - Path to the CODEOWNERS file containing this entry
+/// * `line_number` - Line number (0-indexed) where this entry appears
+/// * `pattern` - The glob pattern for matching files (e.g., `*.rs`, `/docs/`)
+/// * `owners` - List of owners assigned to files matching this pattern
+/// * `tags` - Optional metadata tags (e.g., `#backend`, `#critical`)
+///
+/// # Example
+///
+/// A CODEOWNERS line like `*.rs @rust-team #backend` would produce:
+/// - `pattern`: `"*.rs"`
+/// - `owners`: `[Owner { identifier: "@rust-team", owner_type: Team }]`
+/// - `tags`: `[Tag("backend")]`
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodeownersEntry {
     pub source_file: PathBuf,
@@ -30,7 +48,19 @@ pub struct CodeownersEntry {
     pub tags: Vec<Tag>,
 }
 
-/// Inline CODEOWNERS entry for file-specific ownership
+/// An inline CODEOWNERS declaration embedded within a source file.
+///
+/// Inline declarations allow files to specify their own ownership using
+/// a special marker comment: `!!!CODEOWNERS @owner1 @owner2 #tag1`
+///
+/// This is useful when a specific file requires different ownership
+/// than what the main CODEOWNERS file would assign.
+///
+/// # Example
+///
+/// A Rust file containing `// !!!CODEOWNERS @security-team #critical` would
+/// produce an entry with the security team as owner regardless of the
+/// patterns in the root CODEOWNERS file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InlineCodeownersEntry {
     pub file_path: PathBuf,
@@ -121,20 +151,39 @@ pub fn codeowners_entry_to_matcher(
     })
 }
 
-/// Detailed owner representation
+/// Represents an owner of code files.
+///
+/// Owners can be GitHub users, teams, email addresses, or special markers
+/// indicating unowned files.
+///
+/// # Examples
+///
+/// * `@username` - A GitHub user (OwnerType::User)
+/// * `@org/team-name` - A GitHub team (OwnerType::Team)
+/// * `user@example.com` - An email address (OwnerType::Email)
+/// * `NOOWNER` - Explicitly unowned (OwnerType::Unowned)
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Owner {
+    /// The raw identifier string (e.g., "@rust-team", "dev@example.com")
     pub identifier: String,
+    /// The classified type of this owner
     pub owner_type: OwnerType,
 }
 
-/// Owner type classification
+/// Classification of owner types in CODEOWNERS files.
+///
+/// Used to distinguish between different forms of ownership identifiers.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum OwnerType {
+    /// A GitHub user (e.g., `@username`)
     User,
+    /// A GitHub team (e.g., `@org/team-name`)
     Team,
+    /// An email address (e.g., `user@example.com`)
     Email,
+    /// Explicitly marked as unowned (NOOWNER keyword)
     Unowned,
+    /// Could not determine the owner type
     Unknown,
 }
 
@@ -150,14 +199,27 @@ impl std::fmt::Display for OwnerType {
     }
 }
 
-/// Tag representation
+/// A metadata tag for categorizing code ownership rules.
+///
+/// Tags are optional annotations in CODEOWNERS entries prefixed with `#`.
+/// They can be used to categorize files by domain, criticality, or other attributes.
+///
+/// # Examples
+///
+/// * `#backend` - Backend service code
+/// * `#critical` - Security-critical files
+/// * `#frontend` - Frontend components
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Tag(pub String);
 
+/// Output format for CLI commands.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OutputFormat {
+    /// Human-readable text output (default)
     Text,
+    /// JSON format for programmatic consumption
     Json,
+    /// Binary format for efficient serialization
     Bincode,
 }
 
@@ -172,22 +234,44 @@ impl std::fmt::Display for OutputFormat {
 }
 
 // Cache related types
-/// File entry in the ownership cache
+
+/// A file with its resolved ownership information.
+///
+/// This represents the final computed ownership for a specific file,
+/// combining rules from CODEOWNERS files and inline declarations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
+    /// Path to the file (relative to repository root)
     pub path: PathBuf,
+    /// All owners assigned to this file
     pub owners: Vec<Owner>,
+    /// All tags associated with this file
     pub tags: Vec<Tag>,
 }
 
-/// Cache for storing parsed CODEOWNERS information
+/// Pre-computed cache of CODEOWNERS information for fast lookups.
+///
+/// The cache stores parsed CODEOWNERS rules, file ownership mappings,
+/// and reverse lookup indexes for efficient querying.
+///
+/// # Cache Invalidation
+///
+/// The cache is invalidated when the repository state changes, detected
+/// via the `hash` field which combines:
+/// - HEAD commit hash
+/// - Index/staging area state
+/// - Unstaged file changes (excluding cache files themselves)
 #[derive(Debug)]
 pub struct CodeownersCache {
+    /// SHA-256 hash of the repository state for cache invalidation
     pub hash: [u8; 32],
+    /// All parsed CODEOWNERS entries
     pub entries: Vec<CodeownersEntry>,
+    /// All files with their resolved ownership
     pub files: Vec<FileEntry>,
-    // Derived data for lookups
+    /// Reverse lookup: owner → list of owned files
     pub owners_map: std::collections::HashMap<Owner, Vec<PathBuf>>,
+    /// Reverse lookup: tag → list of tagged files
     pub tags_map: std::collections::HashMap<Tag, Vec<PathBuf>>,
 }
 
