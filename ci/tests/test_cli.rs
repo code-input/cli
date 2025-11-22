@@ -293,16 +293,16 @@ fn test_codeowners_inspect_command() {
         .assert()
         .success();
 
-    // Inspect command should at least accept the arguments
-    // Note: The inspect command has path normalization issues that need to be fixed
-    // For now, verify the command runs (even if it reports file not found)
+    // Inspect a specific file - verify ownership info is returned
     ci().arg("codeowners")
         .arg("inspect")
-        .arg("./src/main.rs")
+        .arg("src/main.rs")
         .arg("--repo")
         .arg(".")
         .current_dir(temp_dir.path())
-        .assert(); // Don't assert success - path normalization needs fixing
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("@rust-team"));
 }
 
 #[test]

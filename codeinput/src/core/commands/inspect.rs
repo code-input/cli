@@ -34,11 +34,19 @@ pub fn run(
         file_path.to_path_buf()
     };
 
-    // Find the file in the cache
+    // Create normalized path for matching (handle ./ prefix variations)
+    let path_str = normalized_file_path.to_string_lossy();
+    let path_without_dot = path_str.strip_prefix("./").unwrap_or(&path_str);
+
+    // Find the file in the cache (try both with and without ./ prefix)
     let file_entry = cache
         .files
         .iter()
-        .find(|file| file.path == normalized_file_path)
+        .find(|file| {
+            let cache_path = file.path.to_string_lossy();
+            let cache_path_normalized = cache_path.strip_prefix("./").unwrap_or(&cache_path);
+            cache_path_normalized == path_without_dot
+        })
         .ok_or_else(|| {
             Error::new(&format!(
                 "File {} not found in cache",

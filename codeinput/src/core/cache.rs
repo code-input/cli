@@ -1,6 +1,6 @@
 use crate::{
     core::{
-        common::{collect_owners, collect_tags, get_repo_hash},
+        common::get_repo_hash,
         parse::parse_repo,
         resolver::find_owners_and_tags_for_file,
         types::{
@@ -93,27 +93,21 @@ pub fn build_cache(
     // Print newline after processing is complete
     println!("\r\x1b[K✅ Processed {} files successfully", total_files);
 
-    // Process each owner
-    let owners = collect_owners(&entries);
-    owners.iter().for_each(|owner| {
-        let paths = owners_map.entry(owner.clone()).or_insert_with(Vec::new);
-        for file_entry in &file_entries {
-            if file_entry.owners.contains(owner) {
-                paths.push(file_entry.path.clone());
-            }
+    // Build owner and tag maps in a single pass through file_entries - O(files) instead of O(owners × files)
+    for file_entry in &file_entries {
+        for owner in &file_entry.owners {
+            owners_map
+                .entry(owner.clone())
+                .or_insert_with(Vec::new)
+                .push(file_entry.path.clone());
         }
-    });
-
-    // Process each tag
-    let tags = collect_tags(&entries);
-    tags.iter().for_each(|tag| {
-        let paths = tags_map.entry(tag.clone()).or_insert_with(Vec::new);
-        for file_entry in &file_entries {
-            if file_entry.tags.contains(tag) {
-                paths.push(file_entry.path.clone());
-            }
+        for tag in &file_entry.tags {
+            tags_map
+                .entry(tag.clone())
+                .or_insert_with(Vec::new)
+                .push(file_entry.path.clone());
         }
-    });
+    }
 
     Ok(CodeownersCache {
         hash,

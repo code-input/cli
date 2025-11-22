@@ -4,7 +4,7 @@ use ignore::Walk;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
-use super::types::{CodeownersEntry, Owner, Tag};
+use super::types::CodeownersEntry;
 
 /// Maximum recursion depth for finding CODEOWNERS files (prevents stack overflow on deep structures)
 const MAX_RECURSION_DEPTH: usize = 100;
@@ -57,31 +57,6 @@ pub fn find_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
     Ok(result)
 }
 
-/// Collect all unique owners from CODEOWNERS entries
-pub fn collect_owners(entries: &[CodeownersEntry]) -> Vec<Owner> {
-    let mut owners = std::collections::HashSet::new();
-
-    for entry in entries {
-        for owner in &entry.owners {
-            owners.insert(owner.clone());
-        }
-    }
-
-    owners.into_iter().collect()
-}
-
-/// Collect all unique tags from CODEOWNERS entries
-pub fn collect_tags(entries: &[CodeownersEntry]) -> Vec<Tag> {
-    let mut tags = std::collections::HashSet::new();
-
-    for entry in entries {
-        for tag in &entry.tags {
-            tags.insert(tag.clone());
-        }
-    }
-
-    tags.into_iter().collect()
-}
 
 /// Files to exclude from the repository hash calculation (these are generated files)
 const HASH_EXCLUDED_PATTERNS: &[&str] = &[

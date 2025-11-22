@@ -3,11 +3,11 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 pub(crate) trait SmartIter<T: Send + Sync> {
-    fn smart_iter(&self, n: usize) -> SmartIterator<T>;
+    fn smart_iter(&self, n: usize) -> SmartIterator<'_, T>;
 }
 
 impl<T: Send + Sync> SmartIter<T> for [T] {
-    fn smart_iter(&self, n: usize) -> SmartIterator<T> {
+    fn smart_iter(&self, n: usize) -> SmartIterator<'_, T> {
         if self.len() <= n {
             SmartIterator::Sequential(self.iter())
         } else {
