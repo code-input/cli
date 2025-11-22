@@ -6,8 +6,24 @@ use std::path::{Path, PathBuf};
 
 use super::types::{CodeownersEntry, Owner, Tag};
 
+/// Maximum recursion depth for finding CODEOWNERS files (prevents stack overflow on deep structures)
+const MAX_RECURSION_DEPTH: usize = 100;
+
 /// Find CODEOWNERS files recursively in the given directory and its subdirectories
 pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
+    find_codeowners_files_impl(base_path.as_ref(), 0)
+}
+
+fn find_codeowners_files_impl(base_path: &Path, depth: usize) -> Result<Vec<PathBuf>> {
+    if depth > MAX_RECURSION_DEPTH {
+        log::warn!(
+            "Maximum recursion depth ({}) reached while searching for CODEOWNERS files at {}",
+            MAX_RECURSION_DEPTH,
+            base_path.display()
+        );
+        return Ok(Vec::new());
+    }
+
     let mut result = Vec::new();
     if let Ok(entries) = std::fs::read_dir(base_path) {
         for entry in entries.flatten() {
@@ -21,7 +37,7 @@ pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf
             {
                 result.push(path);
             } else if path.is_dir() {
-                result.extend(find_codeowners_files(path)?);
+                result.extend(find_codeowners_files_impl(&path, depth + 1)?);
             }
         }
     }
@@ -67,6 +83,12 @@ pub fn collect_tags(entries: &[CodeownersEntry]) -> Vec<Tag> {
     tags.into_iter().collect()
 }
 
+/// Files to exclude from the repository hash calculation (these are generated files)
+const HASH_EXCLUDED_PATTERNS: &[&str] = &[
+    ".codeowners.cache",
+    "*.codeowners.cache",
+];
+
 pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
     let repo = Repository::open(repo_path)
         .map_err(|e| Error::with_source("Failed to open repo", Box::new(e)))?;
@@ -75,7 +97,7 @@ pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
     let head_oid = repo
         .head()
         .and_then(|r| r.resolve())
-        .and_then(|r| Ok(r.target()))
+        .map(|r| r.target())
         .unwrap_or(None);
 
     // 2. Get index/staging area tree hash
@@ -87,16 +109,35 @@ pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
         .write_tree()
         .map_err(|e| Error::with_source("Failed to write index tree", Box::new(e)))?;
 
-    // 3. Calculate hash of unstaged changes
-    // TODO: this doesn't work and also we need to exclude .codeowners.cache file
-    // otherwise the hash will change every time we parse the repo
+    // 3. Calculate hash of unstaged changes, excluding cache files
     let unstaged_hash = {
+        let mut diff_opts = DiffOptions::new();
+        diff_opts.include_untracked(true);
+
+        // Add pathspec exclusions for cache files
+        for pattern in HASH_EXCLUDED_PATTERNS {
+            diff_opts.pathspec(format!(":(exclude){}", pattern));
+        }
+
         let diff = repo
-            .diff_index_to_workdir(None, Some(DiffOptions::new().include_untracked(true)))
+            .diff_index_to_workdir(None, Some(&mut diff_opts))
             .map_err(|e| Error::with_source("Failed to get diff", Box::new(e)))?;
 
         let mut hasher = Sha256::new();
-        diff.print(DiffFormat::Patch, |_, _, line| {
+        diff.print(DiffFormat::Patch, |delta, _, line| {
+            // Double-check: skip any cache files that might have slipped through
+            if let Some(path) = delta.new_file().path() {
+                let path_str = path.to_string_lossy();
+                if HASH_EXCLUDED_PATTERNS.iter().any(|p| {
+                    if p.starts_with('*') {
+                        path_str.ends_with(&p[1..])
+                    } else {
+                        path_str == *p
+                    }
+                }) {
+                    return true; // Skip this file
+                }
+            }
             hasher.update(line.content());
             true
         })

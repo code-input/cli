@@ -132,7 +132,11 @@ fn filter_unowned_files(
     };
 
     let mut unowned_files = Vec::new();
-    let matchers: Vec<_> = cache.entries.iter().map(codeowners_entry_to_matcher).collect();
+    let matchers: Vec<_> = cache
+        .entries
+        .iter()
+        .filter_map(|e| codeowners_entry_to_matcher(e).ok())
+        .collect();
     for file in files {
         let (owners, _tags) = find_owners_and_tags_for_file(&file, &matchers)?;
         if owners.is_empty() || owners.iter().all(|o| o.owner_type == OwnerType::Unowned) {
@@ -156,7 +160,11 @@ fn analyze_file_ownership(
     // Get existing owners from cache
     let existing_owners = match cache {
         Some(cache) => {
-            let matchers: Vec<_> = cache.entries.iter().map(codeowners_entry_to_matcher).collect();
+            let matchers: Vec<_> = cache
+                .entries
+                .iter()
+                .filter_map(|e| codeowners_entry_to_matcher(e).ok())
+                .collect();
             let (owners, _tags) = find_owners_and_tags_for_file(file_path, &matchers).unwrap_or_default();
             owners
         },

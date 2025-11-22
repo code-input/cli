@@ -51,53 +51,74 @@ pub struct CodeownersEntryMatcher {
     pub override_matcher: Override,
 }
 
+/// Error type for pattern matching failures
+#[derive(Debug)]
+pub struct PatternError {
+    pub pattern: String,
+    pub source_file: PathBuf,
+    pub message: String,
+}
+
+impl std::fmt::Display for PatternError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Invalid pattern '{}' in {}: {}",
+            self.pattern,
+            self.source_file.display(),
+            self.message
+        )
+    }
+}
+
+impl std::error::Error for PatternError {}
+
+/// Converts a CodeownersEntry to a CodeownersEntryMatcher with pattern compilation.
+///
+/// # Errors
+///
+/// Returns a `PatternError` if:
+/// - The entry's source file has no parent directory
+/// - The pattern is invalid and cannot be compiled
+/// - The override matcher fails to build
 #[cfg(feature = "ignore")]
-pub fn codeowners_entry_to_matcher(entry: &CodeownersEntry) -> CodeownersEntryMatcher {
-    let codeowners_dir = match entry.source_file.parent() {
-        Some(dir) => dir,
-        None => {
-            eprintln!(
-                "CODEOWNERS entry has no parent directory: {}",
-                entry.source_file.display()
-            );
-            panic!("Invalid CODEOWNERS entry without parent directory");
-        }
-    };
+pub fn codeowners_entry_to_matcher(
+    entry: &CodeownersEntry,
+) -> Result<CodeownersEntryMatcher, PatternError> {
+    let codeowners_dir = entry.source_file.parent().ok_or_else(|| PatternError {
+        pattern: entry.pattern.clone(),
+        source_file: entry.source_file.clone(),
+        message: "CODEOWNERS entry has no parent directory".to_string(),
+    })?;
 
     let mut builder = ignore::overrides::OverrideBuilder::new(codeowners_dir);
 
     // Transform directory patterns to match GitHub CODEOWNERS behavior
     let pattern = normalize_codeowners_pattern(&entry.pattern);
 
-    if let Err(e) = builder.add(&pattern) {
-        eprintln!(
-            "Invalid pattern '{}' (normalized from '{}') in {}: {}",
-            pattern,
-            entry.pattern,
-            entry.source_file.display(),
-            e
-        );
-        panic!("Invalid CODEOWNERS entry pattern");
-    }
-    let override_matcher: Override = match builder.build() {
-        Ok(o) => o,
-        Err(e) => {
-            eprintln!(
-                "Failed to build override for pattern '{}': {}",
-                entry.pattern, e
-            );
-            panic!("Failed to build CODEOWNERS entry matcher");
-        }
-    };
+    builder.add(&pattern).map_err(|e| PatternError {
+        pattern: entry.pattern.clone(),
+        source_file: entry.source_file.clone(),
+        message: format!(
+            "Invalid pattern '{}' (normalized from '{}'): {}",
+            pattern, entry.pattern, e
+        ),
+    })?;
 
-    CodeownersEntryMatcher {
+    let override_matcher = builder.build().map_err(|e| PatternError {
+        pattern: entry.pattern.clone(),
+        source_file: entry.source_file.clone(),
+        message: format!("Failed to build override matcher: {}", e),
+    })?;
+
+    Ok(CodeownersEntryMatcher {
         source_file: entry.source_file.clone(),
         line_number: entry.line_number,
         pattern: entry.pattern.clone(),
         owners: entry.owners.clone(),
         tags: entry.tags.clone(),
         override_matcher,
-    }
+    })
 }
 
 /// Detailed owner representation
@@ -355,7 +376,7 @@ mod tests {
             tags: vec![],
         };
 
-        let matcher = codeowners_entry_to_matcher(&entry);
+        let matcher = codeowners_entry_to_matcher(&entry).unwrap();
 
         // Test files that should match
         let test_files = vec![

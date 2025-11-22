@@ -16,7 +16,11 @@ pub struct Error {
 // Implement the Display trait for our Error type.
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{}", self.msg)?;
+        if let Some(ref source) = self.source {
+            write!(f, ": {}", source)?;
+        }
+        Ok(())
     }
 }
 

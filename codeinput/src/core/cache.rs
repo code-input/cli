@@ -23,9 +23,24 @@ pub fn build_cache(
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
 
+    // Build matchers, filtering out invalid patterns with warnings
     let matched_entries: Vec<CodeownersEntryMatcher> = entries
         .iter()
-        .map(|entry| codeowners_entry_to_matcher(entry))
+        .filter_map(|entry| {
+            match codeowners_entry_to_matcher(entry) {
+                Ok(matcher) => Some(matcher),
+                Err(e) => {
+                    log::warn!(
+                        "Skipping invalid CODEOWNERS pattern '{}' in {} line {}: {}",
+                        entry.pattern,
+                        entry.source_file.display(),
+                        entry.line_number,
+                        e.message
+                    );
+                    None
+                }
+            }
+        })
         .collect();
 
     // Process each file to find owners and tags
@@ -53,16 +68,22 @@ pub fn build_cache(
                         "\r\x1b[K📁 Processing [{}/{}] {}",
                         current, total_files, truncated_file
                     );
-                    std::io::stdout().flush().unwrap();
+                    let _ = std::io::stdout().flush(); // Ignore flush errors
 
-                    let (owners, tags) =
-                        find_owners_and_tags_for_file(file_path, &matched_entries).unwrap();
+                    // Handle errors gracefully - skip files that can't be processed
+                    let (owners, tags) = match find_owners_and_tags_for_file(file_path, &matched_entries) {
+                        Ok(result) => result,
+                        Err(e) => {
+                            log::warn!("Failed to resolve ownership for {}: {}", file_path.display(), e);
+                            (vec![], vec![])
+                        }
+                    };
 
                     // Build file entry
                     FileEntry {
                         path: file_path.clone(),
-                        owners: owners.clone(),
-                        tags: tags.clone(),
+                        owners,
+                        tags,
                     }
                 })
                 .collect::<Vec<FileEntry>>()

@@ -27,7 +27,7 @@ fn create_test_codeowners_entry_matcher(
         owners,
         tags,
     };
-    codeowners_entry_to_matcher(&entry)
+    codeowners_entry_to_matcher(&entry).expect("Failed to create matcher in benchmark")
 }
 
 fn bench_find_owners_and_tags_simple_pattern(c: &mut Criterion) {
