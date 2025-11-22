@@ -64,11 +64,17 @@ pub fn build_cache(
                         file_display
                     };
 
-                    print!(
-                        "\r\x1b[K📁 Processing [{}/{}] {}",
-                        current, total_files, truncated_file
-                    );
-                    let _ = std::io::stdout().flush(); // Ignore flush errors
+                    // Only show progress if not in quiet mode
+                    if !crate::utils::app_config::AppConfig::fetch()
+                        .map(|c| c.quiet)
+                        .unwrap_or(false)
+                    {
+                        print!(
+                            "\r\x1b[K📁 Processing [{}/{}] {}",
+                            current, total_files, truncated_file
+                        );
+                        let _ = std::io::stdout().flush();
+                    }
 
                     // Handle errors gracefully - skip files that can't be processed
                     let (owners, tags) = match find_owners_and_tags_for_file(file_path, &matched_entries) {
@@ -90,8 +96,13 @@ pub fn build_cache(
         })
         .collect();
 
-    // Print newline after processing is complete
-    println!("\r\x1b[K✅ Processed {} files successfully", total_files);
+    // Print newline after processing is complete (unless in quiet mode)
+    if !crate::utils::app_config::AppConfig::fetch()
+        .map(|c| c.quiet)
+        .unwrap_or(false)
+    {
+        println!("\r\x1b[K✅ Processed {} files successfully", total_files);
+    }
 
     // Build owner and tag maps in a single pass through file_entries - O(files) instead of O(owners × files)
     for file_entry in &file_entries {

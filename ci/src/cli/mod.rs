@@ -19,21 +19,20 @@ use codeinput::utils::types::LogLevel;
     author,
     about,
     long_about = "code input CLI",
-    version
+    version,
+    subcommand_required = true,
+    arg_required_else_help = true
 )]
-//TODO: #[clap(setting = AppSettings::SubcommandRequired)]
-//TODO: #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
 pub struct Cli {
     /// Set a custom config file
-    /// TODO: parse(from_os_str)
     #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
-    /// Set a custom config file
+    /// Enable debug mode
     #[arg(name = "debug", short, long = "debug", value_name = "DEBUG")]
     pub debug: Option<bool>,
 
-    /// Set Log Level
+    /// Set log level (debug, info, warn, error)
     #[arg(
         name = "log_level",
         short,
@@ -41,6 +40,10 @@ pub struct Cli {
         value_name = "LOG_LEVEL"
     )]
     pub log_level: Option<LogLevel>,
+
+    /// Suppress progress output (quiet mode)
+    #[arg(short, long, global = true)]
+    pub quiet: bool,
 
     /// Subcommands
     #[clap(subcommand)]

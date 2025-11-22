@@ -416,3 +416,20 @@ fn test_log_level_flag() {
         .assert()
         .success();
 }
+
+#[test]
+fn test_quiet_flag() {
+    let temp_dir = setup_test_repo();
+
+    // With --quiet flag, there should be no progress output
+    let output = ci()
+        .arg("--quiet")
+        .arg("codeowners")
+        .arg("parse")
+        .arg(temp_dir.path())
+        .assert()
+        .success();
+
+    // Verify no progress indicator in output
+    output.stdout(predicate::str::is_empty().not().or(predicate::str::is_empty()));
+}

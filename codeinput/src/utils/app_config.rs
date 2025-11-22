@@ -19,6 +19,8 @@ pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
     pub cache_file: String,
+    #[serde(default)]
+    pub quiet: bool,
 }
 
 impl AppConfig {
@@ -52,13 +54,17 @@ impl AppConfig {
     pub fn merge_args(args: clap::ArgMatches) -> Result<()> {
         if args.contains_id("debug") {
             let value: &bool = args.get_one("debug").unwrap_or(&false);
-
             AppConfig::set("debug", &value.to_string())?;
         }
 
         if args.contains_id("log_level") {
             let value: &LogLevel = args.get_one("log_level").unwrap_or(&LogLevel::Info);
             AppConfig::set("log_level", &value.to_string())?;
+        }
+
+        if args.contains_id("quiet") {
+            let value: &bool = args.get_one("quiet").unwrap_or(&false);
+            AppConfig::set("quiet", &value.to_string())?;
         }
 
         Ok(())
@@ -121,6 +127,7 @@ impl TryFrom<Config> for AppConfig {
             debug: config.get_bool("debug")?,
             log_level: config.get::<LogLevel>("log_level")?,
             cache_file: config.get::<String>("cache_file")?,
+            quiet: config.get_bool("quiet").unwrap_or(false),
         })
     }
 }

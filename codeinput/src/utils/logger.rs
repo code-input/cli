@@ -19,8 +19,9 @@ pub fn setup_logging() -> Result<slog_scope::GlobalLoggerGuard> {
         debug: false,
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
+        quiet: false,
     });
-    
+
     let log_level = match config.log_level {
         LogLevel::Debug => log::LevelFilter::Debug,
         LogLevel::Info => log::LevelFilter::Info,
@@ -39,8 +40,9 @@ pub fn default_root_logger() -> Result<slog::Logger> {
         debug: false,
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
+        quiet: false,
     });
-    
+
     let slog_level = match config.log_level {
         LogLevel::Debug => slog::Level::Debug,
         LogLevel::Info => slog::Level::Info,
