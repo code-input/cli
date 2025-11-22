@@ -102,8 +102,8 @@ pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
             if let Some(path) = delta.new_file().path() {
                 let path_str = path.to_string_lossy();
                 if HASH_EXCLUDED_PATTERNS.iter().any(|p| {
-                    if p.starts_with('*') {
-                        path_str.ends_with(&p[1..])
+                    if let Some(suffix) = p.strip_prefix('*') {
+                        path_str.ends_with(suffix)
                     } else {
                         path_str == *p
                     }
@@ -122,7 +122,7 @@ pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
     let mut hasher = Sha256::new();
     hasher.update(head_oid.unwrap_or(git2::Oid::zero()).as_bytes());
     hasher.update(index_tree.as_bytes());
-    hasher.update(&unstaged_hash);
+    hasher.update(unstaged_hash);
 
     Ok(hasher.finalize().into())
 }

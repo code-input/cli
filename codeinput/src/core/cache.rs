@@ -209,14 +209,14 @@ pub fn sync_cache(
         .clone();
 
     let cache_file: &std::path::Path = match cache_file {
-        Some(file) => file.into(),
+        Some(file) => file,
         None => std::path::Path::new(&config_cache_file),
     };
 
     // Verify that the cache file exists
     if !repo.join(cache_file).exists() {
         // parse the codeowners files and build the cache
-        return parse_repo(&repo, &cache_file);
+        return parse_repo(repo, cache_file);
     }
 
     // Load the cache from the specified file
@@ -245,8 +245,8 @@ pub fn sync_cache(
 
     if cache_hash != current_hash {
         // parse the codeowners files and build the cache
-        return parse_repo(repo, cache_file);
+        parse_repo(repo, cache_file)
     } else {
-        return Ok(cache);
+        Ok(cache)
     }
 }

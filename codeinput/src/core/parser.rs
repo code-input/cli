@@ -47,20 +47,19 @@ pub fn parse_line(
     // Collect tags with lookahead to check for comments
     while i < tokens.len() {
         let token = tokens[i];
-        if token.starts_with('#') {
-            if token == "#" {
-                // Comment starts, break
+        if let Some(tag_name) = token.strip_prefix('#') {
+            if tag_name.is_empty() {
+                // Standalone "#" means comment starts, break
                 break;
-            } else {
-                // Check if the next token is not a tag (doesn't start with '#')
-                let next_is_non_tag = i + 1 < tokens.len() && !tokens[i + 1].starts_with('#');
-                if next_is_non_tag {
-                    // This token is part of the comment, break
-                    break;
-                }
-                tags.push(Tag(token[1..].to_string()));
-                i += 1;
             }
+            // Check if the next token is not a tag (doesn't start with '#')
+            let next_is_non_tag = i + 1 < tokens.len() && !tokens[i + 1].starts_with('#');
+            if next_is_non_tag {
+                // This token is part of the comment, break
+                break;
+            }
+            tags.push(Tag(tag_name.to_string()));
+            i += 1;
         } else {
             // Non-tag, part of comment
             break;
@@ -81,8 +80,8 @@ pub fn parse_owner(owner_str: &str) -> Result<Owner> {
     let identifier = owner_str.to_string();
     let owner_type = if identifier.eq_ignore_ascii_case("NOOWNER") {
         OwnerType::Unowned
-    } else if owner_str.starts_with('@') {
-        let parts: Vec<&str> = owner_str[1..].split('/').collect();
+    } else if let Some(stripped) = owner_str.strip_prefix('@') {
+        let parts: Vec<&str> = stripped.split('/').collect();
         if parts.len() == 2 {
             OwnerType::Team
         } else {

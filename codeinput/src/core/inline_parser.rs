@@ -59,14 +59,12 @@ fn parse_inline_codeowners_line(
         // Collect tags
         while i < tokens.len() {
             let token = tokens[i];
-            if token.starts_with('#') {
+            if let Some(tag_part) = token.strip_prefix('#') {
                 if token == "#" {
                     // Standalone # means comment starts, break
                     break;
                 } else {
                     // Extract tag name, but check if this might be a comment
-                    let tag_part = &token[1..];
-
                     // If the tag part is empty, it's probably a comment marker
                     if tag_part.is_empty() {
                         break;

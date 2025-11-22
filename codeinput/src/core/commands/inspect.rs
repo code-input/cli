@@ -66,8 +66,7 @@ pub fn run(
             if pattern.ends_with("*") {
                 let prefix = &pattern[..pattern.len() - 1];
                 file_str.starts_with(prefix)
-            } else if pattern.starts_with("*") {
-                let suffix = &pattern[1..];
+            } else if let Some(suffix) = pattern.strip_prefix("*") {
                 file_str.ends_with(suffix)
             } else if pattern.contains('*') {
                 // Basic wildcard matching - could be improved

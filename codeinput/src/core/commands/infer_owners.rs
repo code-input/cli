@@ -61,6 +61,7 @@ struct InferenceTableRow {
     lines: u32,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     path: Option<&Path>,
     scope: &InferScope,
@@ -147,6 +148,7 @@ fn filter_unowned_files(
     Ok(unowned_files)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn analyze_file_ownership(
     repo: &Repository,
     file_path: &Path,
@@ -200,7 +202,7 @@ fn analyze_file_ownership(
         let top_score = inferred_owners[0].score;
         let score_ratio = if total_score > 0.0 { top_score / total_score } else { 0.0 };
         let candidate_penalty = 1.0 - (inferred_owners.len().min(5) as f64 * 0.1);
-        (score_ratio * candidate_penalty).min(1.0).max(0.0)
+        (score_ratio * candidate_penalty).clamp(0.0, 1.0)
     };
 
     Ok(FileOwnershipInference {
