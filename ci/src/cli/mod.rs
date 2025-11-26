@@ -6,7 +6,10 @@ use clap_complete::{
 use std::path::PathBuf;
 
 use codeinput::core::{
-    commands::{self, infer_owners::{InferScope, InferAlgorithm}},
+    commands::{
+        self,
+        infer_owners::{InferAlgorithm, InferScope},
+    },
     types::{CacheEncoding, OutputFormat},
 };
 use codeinput::utils::app_config::AppConfig;
@@ -377,7 +380,9 @@ fn parse_infer_algorithm(s: &str) -> std::result::Result<InferAlgorithm, String>
         "commits" => Ok(InferAlgorithm::Commits),
         "lines" => Ok(InferAlgorithm::Lines),
         "recent" => Ok(InferAlgorithm::Recent),
-        _ => Err(format!("Invalid algorithm: {}. Valid options: commits, lines, recent", s)),
+        _ => Err(format!(
+            "Invalid algorithm: {}. Valid options: commits, lines, recent",
+            s
+        )),
     }
 }
-

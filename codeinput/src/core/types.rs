@@ -4,6 +4,9 @@ use std::path::PathBuf;
 use ignore::overrides::Override;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
+
 /// Normalizes a CODEOWNERS pattern to match GitHub's behavior
 ///
 /// GitHub CODEOWNERS directory matching rules:
@@ -11,6 +14,7 @@ use serde::{Deserialize, Serialize};
 /// - `/path/to/dir/*` matches direct files only (kept as-is)
 /// - `/path/to/dir/**` matches everything recursively (kept as-is)
 /// - Other patterns are kept as-is
+#[cfg(any(feature = "ignore", test))]
 fn normalize_codeowners_pattern(pattern: &str) -> String {
     // If pattern ends with `/` but not `*/` or `**/`, convert to `/**`
     if pattern.ends_with('/') && !pattern.ends_with("*/") && !pattern.ends_with("**/") {
@@ -22,6 +26,7 @@ fn normalize_codeowners_pattern(pattern: &str) -> String {
 
 /// CODEOWNERS entry with source tracking
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CodeownersEntry {
     pub source_file: PathBuf,
     pub line_number: usize,
@@ -102,6 +107,7 @@ pub fn codeowners_entry_to_matcher(entry: &CodeownersEntry) -> CodeownersEntryMa
 
 /// Detailed owner representation
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct Owner {
     pub identifier: String,
     pub owner_type: OwnerType,
@@ -109,6 +115,7 @@ pub struct Owner {
 
 /// Owner type classification
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub enum OwnerType {
     User,
     Team,
@@ -131,6 +138,7 @@ impl std::fmt::Display for OwnerType {
 
 /// Tag representation
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct Tag(pub String);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -153,6 +161,7 @@ impl std::fmt::Display for OutputFormat {
 // Cache related types
 /// File entry in the ownership cache
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct FileEntry {
     pub path: PathBuf,
     pub owners: Vec<Owner>,
@@ -161,6 +170,7 @@ pub struct FileEntry {
 
 /// Cache for storing parsed CODEOWNERS information
 #[derive(Debug)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CodeownersCache {
     pub hash: [u8; 32],
     pub entries: Vec<CodeownersEntry>,

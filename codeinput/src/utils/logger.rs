@@ -20,14 +20,14 @@ pub fn setup_logging() -> Result<slog_scope::GlobalLoggerGuard> {
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
     });
-    
+
     let log_level = match config.log_level {
         LogLevel::Debug => log::LevelFilter::Debug,
         LogLevel::Info => log::LevelFilter::Info,
         LogLevel::Warn => log::LevelFilter::Warn,
         LogLevel::Error => log::LevelFilter::Error,
     };
-    
+
     log::set_max_level(log_level);
 
     Ok(guard)
@@ -40,7 +40,7 @@ pub fn default_root_logger() -> Result<slog::Logger> {
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
     });
-    
+
     let slog_level = match config.log_level {
         LogLevel::Debug => slog::Level::Debug,
         LogLevel::Info => slog::Level::Info,
@@ -54,18 +54,32 @@ pub fn default_root_logger() -> Result<slog::Logger> {
     // Merge drains with level filtering
     #[cfg(feature = "termlog")]
     let drain = slog::Duplicate(
-        slog::LevelFilter::new(default_term_drain().unwrap_or(default_discard()?), slog_level).fuse(),
-        drain
-    ).fuse();
+        slog::LevelFilter::new(
+            default_term_drain().unwrap_or(default_discard()?),
+            slog_level,
+        )
+        .fuse(),
+        drain,
+    )
+    .fuse();
     #[cfg(feature = "syslog")]
     let drain = slog::Duplicate(
-        slog::LevelFilter::new(default_syslog_drain().unwrap_or(default_discard()?), slog_level).fuse(),
-        drain
-    ).fuse();
+        slog::LevelFilter::new(
+            default_syslog_drain().unwrap_or(default_discard()?),
+            slog_level,
+        )
+        .fuse(),
+        drain,
+    )
+    .fuse();
     #[cfg(feature = "journald")]
     #[cfg(target_os = "linux")]
     let drain = slog::Duplicate(
-        slog::LevelFilter::new(default_journald_drain().unwrap_or(default_discard()?), slog_level).fuse(),
+        slog::LevelFilter::new(
+            default_journald_drain().unwrap_or(default_discard()?),
+            slog_level,
+        )
+        .fuse(),
         drain,
     )
     .fuse();

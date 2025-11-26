@@ -2,7 +2,7 @@ use crate::core::{
     cache::load_cache,
     common::find_files,
     resolver::find_owners_and_tags_for_file,
-    types::{CodeownersCache, Owner, OwnerType, codeowners_entry_to_matcher},
+    types::{codeowners_entry_to_matcher, CodeownersCache, Owner, OwnerType},
 };
 use crate::utils::error::{Error, Result};
 use git2::{Blame, BlameOptions, Repository, Time};
@@ -25,7 +25,6 @@ pub enum InferAlgorithm {
     Lines,
     Recent,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileOwnershipInference {
@@ -62,14 +61,8 @@ struct InferenceTableRow {
 }
 
 pub fn run(
-    path: Option<&Path>,
-    scope: &InferScope,
-    algorithm: &InferAlgorithm,
-    lookback_days: u32,
-    min_commits: u32,
-    min_percentage: u32,
-    cache_file: Option<&Path>,
-    output_file: Option<&Path>,
+    path: Option<&Path>, scope: &InferScope, algorithm: &InferAlgorithm, lookback_days: u32,
+    min_commits: u32, min_percentage: u32, cache_file: Option<&Path>, output_file: Option<&Path>,
 ) -> Result<()> {
     let base_path = path.unwrap_or_else(|| Path::new("."));
     let cache_path = cache_file.unwrap_or_else(|| Path::new(".codeowners.cache"));
@@ -94,7 +87,10 @@ pub fn run(
         InferScope::Unowned => filter_unowned_files(files, &cache)?,
     };
 
-    log::info!("Analyzing {} files for ownership inference", files_to_analyze.len());
+    log::info!(
+        "Analyzing {} files for ownership inference",
+        files_to_analyze.len()
+    );
 
     // Analyze each file
     let mut inferences = Vec::new();
@@ -124,15 +120,18 @@ pub fn run(
 }
 
 fn filter_unowned_files(
-    files: Vec<PathBuf>,
-    cache: &Option<CodeownersCache>,
+    files: Vec<PathBuf>, cache: &Option<CodeownersCache>,
 ) -> Result<Vec<PathBuf>> {
     let Some(cache) = cache else {
         return Ok(files);
     };
 
     let mut unowned_files = Vec::new();
-    let matchers: Vec<_> = cache.entries.iter().map(codeowners_entry_to_matcher).collect();
+    let matchers: Vec<_> = cache
+        .entries
+        .iter()
+        .map(codeowners_entry_to_matcher)
+        .collect();
     for file in files {
         let (owners, _tags) = find_owners_and_tags_for_file(&file, &matchers)?;
         if owners.is_empty() || owners.iter().all(|o| o.owner_type == OwnerType::Unowned) {
@@ -144,22 +143,21 @@ fn filter_unowned_files(
 }
 
 fn analyze_file_ownership(
-    repo: &Repository,
-    file_path: &Path,
-    base_path: &Path,
-    algorithm: &InferAlgorithm,
-    lookback_days: u32,
-    min_commits: u32,
-    min_percentage: u32,
-    cache: &Option<CodeownersCache>,
+    repo: &Repository, file_path: &Path, base_path: &Path, algorithm: &InferAlgorithm,
+    lookback_days: u32, min_commits: u32, min_percentage: u32, cache: &Option<CodeownersCache>,
 ) -> Result<FileOwnershipInference> {
     // Get existing owners from cache
     let existing_owners = match cache {
         Some(cache) => {
-            let matchers: Vec<_> = cache.entries.iter().map(codeowners_entry_to_matcher).collect();
-            let (owners, _tags) = find_owners_and_tags_for_file(file_path, &matchers).unwrap_or_default();
+            let matchers: Vec<_> = cache
+                .entries
+                .iter()
+                .map(codeowners_entry_to_matcher)
+                .collect();
+            let (owners, _tags) =
+                find_owners_and_tags_for_file(file_path, &matchers).unwrap_or_default();
             owners
-        },
+        }
         None => Vec::new(),
     };
 
@@ -169,14 +167,16 @@ fn analyze_file_ownership(
     // Analyze ownership based on algorithm
     let contributors = match algorithm {
         InferAlgorithm::Lines => analyze_by_lines(&blame, min_commits)?,
-        InferAlgorithm::Commits => analyze_by_commits(repo, file_path, base_path, lookback_days, min_commits)?,
+        InferAlgorithm::Commits => {
+            analyze_by_commits(repo, file_path, base_path, lookback_days, min_commits)?
+        }
         InferAlgorithm::Recent => analyze_by_recent_activity(&blame, min_commits)?,
     };
 
     // Filter by minimum percentage
     let total_score: f64 = contributors.values().map(|c| c.score).sum();
     let min_score = (min_percentage as f64 / 100.0) * total_score;
-    
+
     let mut inferred_owners: Vec<InferredOwner> = contributors
         .into_values()
         .filter(|c| c.score >= min_score)
@@ -190,7 +190,11 @@ fn analyze_file_ownership(
         0.0
     } else {
         let top_score = inferred_owners[0].score;
-        let score_ratio = if total_score > 0.0 { top_score / total_score } else { 0.0 };
+        let score_ratio = if total_score > 0.0 {
+            top_score / total_score
+        } else {
+            0.0
+        };
         let candidate_penalty = 1.0 - (inferred_owners.len().min(5) as f64 * 0.1);
         (score_ratio * candidate_penalty).min(1.0).max(0.0)
     };
@@ -204,16 +208,14 @@ fn analyze_file_ownership(
 }
 
 fn get_file_blame<'a>(
-    repo: &'a Repository,
-    file_path: &Path,
-    base_path: &Path,
-    lookback_days: u32,
+    repo: &'a Repository, file_path: &Path, base_path: &Path, lookback_days: u32,
 ) -> Result<Blame<'a>> {
-    let relative_path = file_path.strip_prefix(base_path)
+    let relative_path = file_path
+        .strip_prefix(base_path)
         .map_err(|_| Error::new("File path is not within repository"))?;
 
     let mut blame_options = BlameOptions::new();
-    
+
     // Set lookback period
     if lookback_days > 0 {
         let cutoff_time = chrono::Utc::now() - chrono::Duration::days(lookback_days as i64);
@@ -232,15 +234,17 @@ fn analyze_by_lines(blame: &Blame, min_commits: u32) -> Result<HashMap<String, I
     for hunk in blame.iter() {
         let signature = hunk.final_signature();
         let email = signature.email().unwrap_or("unknown").to_string();
-        
-        let entry = contributors.entry(email.clone()).or_insert_with(|| InferredOwner {
-            email: email.clone(),
-            username: None,
-            score: 0.0,
-            commits: 0,
-            lines: 0,
-            last_commit_days_ago: u32::MAX,
-        });
+
+        let entry = contributors
+            .entry(email.clone())
+            .or_insert_with(|| InferredOwner {
+                email: email.clone(),
+                username: None,
+                score: 0.0,
+                commits: 0,
+                lines: 0,
+                last_commit_days_ago: u32::MAX,
+            });
 
         entry.lines += hunk.lines_in_hunk() as u32;
         entry.score += hunk.lines_in_hunk() as f64;
@@ -259,13 +263,10 @@ fn analyze_by_lines(blame: &Blame, min_commits: u32) -> Result<HashMap<String, I
 }
 
 fn analyze_by_commits(
-    repo: &Repository,
-    file_path: &Path,
-    base_path: &Path,
-    lookback_days: u32,
-    min_commits: u32,
+    repo: &Repository, file_path: &Path, base_path: &Path, lookback_days: u32, min_commits: u32,
 ) -> Result<HashMap<String, InferredOwner>> {
-    let relative_path = file_path.strip_prefix(base_path)
+    let relative_path = file_path
+        .strip_prefix(base_path)
         .map_err(|_| Error::new("File path is not within repository"))?;
 
     let mut contributors: HashMap<String, InferredOwner> = HashMap::new();
@@ -281,7 +282,7 @@ fn analyze_by_commits(
     for oid in revwalk {
         let oid = oid?;
         let commit = repo.find_commit(oid)?;
-        
+
         // Check time cutoff
         if let Some(cutoff) = cutoff_time {
             let commit_time = commit.time();
@@ -294,15 +295,17 @@ fn analyze_by_commits(
         if commit_touches_file(repo, &commit, relative_path)? {
             let signature = commit.author();
             let email = signature.email().unwrap_or("unknown").to_string();
-            
-            let entry = contributors.entry(email.clone()).or_insert_with(|| InferredOwner {
-                email: email.clone(),
-                username: None,
-                score: 0.0,
-                commits: 0,
-                lines: 0,
-                last_commit_days_ago: u32::MAX,
-            });
+
+            let entry = contributors
+                .entry(email.clone())
+                .or_insert_with(|| InferredOwner {
+                    email: email.clone(),
+                    username: None,
+                    score: 0.0,
+                    commits: 0,
+                    lines: 0,
+                    last_commit_days_ago: u32::MAX,
+                });
 
             entry.commits += 1;
             entry.score += 1.0;
@@ -316,9 +319,11 @@ fn analyze_by_commits(
     Ok(contributors)
 }
 
-fn analyze_by_recent_activity(blame: &Blame, min_commits: u32) -> Result<HashMap<String, InferredOwner>> {
+fn analyze_by_recent_activity(
+    blame: &Blame, min_commits: u32,
+) -> Result<HashMap<String, InferredOwner>> {
     let mut contributors = analyze_by_lines(blame, min_commits)?;
-    
+
     // Weight recent activity higher
     let _now = chrono::Utc::now().timestamp();
     for contributor in contributors.values_mut() {
@@ -340,10 +345,12 @@ fn commit_touches_file(repo: &Repository, commit: &git2::Commit, file_path: &Pat
 
     // repo is passed as parameter now
     let diff = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)?;
-    
-    let file_path_str = file_path.to_str().ok_or_else(|| Error::new("Invalid file path"))?;
+
+    let file_path_str = file_path
+        .to_str()
+        .ok_or_else(|| Error::new("Invalid file path"))?;
     let mut found = false;
-    
+
     diff.foreach(
         &mut |delta, _| {
             if let Some(path) = delta.new_file().path() {
@@ -355,7 +362,7 @@ fn commit_touches_file(repo: &Repository, commit: &git2::Commit, file_path: &Pat
             if let Some(path) = delta.old_file().path() {
                 if path.to_str() == Some(file_path_str) {
                     found = true;
-                    return false; // Stop iteration  
+                    return false; // Stop iteration
                 }
             }
             true // Continue iteration
@@ -368,7 +375,6 @@ fn commit_touches_file(repo: &Repository, commit: &git2::Commit, file_path: &Pat
     Ok(found)
 }
 
-
 fn output_text(inferences: &[FileOwnershipInference]) {
     if inferences.is_empty() {
         println!("No ownership inferences found.");
@@ -380,22 +386,25 @@ fn output_text(inferences: &[FileOwnershipInference]) {
         let current_owners = if inference.existing_owners.is_empty() {
             "None".to_string()
         } else {
-            inference.existing_owners.iter()
+            inference
+                .existing_owners
+                .iter()
                 .map(|o| format!("{:?}", o))
                 .collect::<Vec<_>>()
                 .join(", ")
         };
 
-        let (inferred_owner, score, commits, lines) = if let Some(top_owner) = inference.inferred_owners.first() {
-            (
-                top_owner.email.clone(),
-                format!("{:.1}%", top_owner.score * 100.0),
-                top_owner.commits,
-                top_owner.lines,
-            )
-        } else {
-            ("None".to_string(), "0%".to_string(), 0, 0)
-        };
+        let (inferred_owner, score, commits, lines) =
+            if let Some(top_owner) = inference.inferred_owners.first() {
+                (
+                    top_owner.email.clone(),
+                    format!("{:.1}%", top_owner.score * 100.0),
+                    top_owner.commits,
+                    top_owner.lines,
+                )
+            } else {
+                ("None".to_string(), "0%".to_string(), 0, 0)
+            };
 
         rows.push(InferenceTableRow {
             file: inference.file_path.display().to_string(),
@@ -409,17 +418,25 @@ fn output_text(inferences: &[FileOwnershipInference]) {
 
     let table = Table::new(rows);
     println!("{}", table);
-    
+
     println!("\nSummary:");
     println!("  Total files analyzed: {}", inferences.len());
-    println!("  Files with inferred owners: {}", 
-        inferences.iter().filter(|i| !i.inferred_owners.is_empty()).count());
-    println!("  Average confidence: {:.1}%", 
-        inferences.iter().map(|i| i.confidence).sum::<f64>() / inferences.len() as f64 * 100.0);
+    println!(
+        "  Files with inferred owners: {}",
+        inferences
+            .iter()
+            .filter(|i| !i.inferred_owners.is_empty())
+            .count()
+    );
+    println!(
+        "  Average confidence: {:.1}%",
+        inferences.iter().map(|i| i.confidence).sum::<f64>() / inferences.len() as f64 * 100.0
+    );
 }
 
-
-fn output_codeowners(inferences: &[FileOwnershipInference], output_file: Option<&Path>) -> Result<()> {
+fn output_codeowners(
+    inferences: &[FileOwnershipInference], output_file: Option<&Path>,
+) -> Result<()> {
     let mut output_lines = Vec::new();
 
     for inference in inferences {
@@ -435,16 +452,26 @@ fn output_codeowners(inferences: &[FileOwnershipInference], output_file: Option<
             .create(true)
             .append(true)
             .open(file_path)
-            .map_err(|e| Error::with_source(&format!("Failed to open file: {}", file_path.display()), Box::new(e)))?;
-        
+            .map_err(|e| {
+                Error::with_source(
+                    &format!("Failed to open file: {}", file_path.display()),
+                    Box::new(e),
+                )
+            })?;
+
         for line in &output_lines {
             writeln!(file, "{}", line)
                 .map_err(|e| Error::with_source("Failed to write to file", Box::new(e)))?;
         }
-        
-        log::info!("Appended {} CODEOWNERS entries to {}", 
-            inferences.iter().filter(|i| !i.inferred_owners.is_empty()).count(),
-            file_path.display());
+
+        log::info!(
+            "Appended {} CODEOWNERS entries to {}",
+            inferences
+                .iter()
+                .filter(|i| !i.inferred_owners.is_empty())
+                .count(),
+            file_path.display()
+        );
     }
 
     Ok(())
