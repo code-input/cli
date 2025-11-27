@@ -23,7 +23,7 @@ journald = ["codeinput/journald"]
 syslog = ["codeinput/syslog"]
 
 [dependencies]
-codeinput = { version = "0.0.3", path = "../codeinput" }
+codeinput = { version = "0.0.4", path = "../codeinput" }
 human-panic = { workspace = true }
 better-panic = { workspace = true }
 log = { workspace = true }
