@@ -196,23 +196,6 @@ jobs:
           asset_name: ci-macos-aarch64
           asset_content_type: application/octet-stream
 
-      - name: Update README with release info
-        run: |
-          chmod +x update-readme.sh
-          ./update-readme.sh
-          
-      - name: Commit README changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add README.md
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "docs: Update README with release ${{ steps.vars.outputs.package_version }} info 🤖"
-            git push
-          fi
-
       - name: Purge artifacts
         uses: omarabid-forks/purge-artifacts@v1
         with:

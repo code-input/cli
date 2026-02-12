@@ -10,18 +10,18 @@
 [![Tests](https://github.com/CodeInputCorp/cli/actions/workflows/tests.yml/badge.svg)](https://github.com/CodeInputCorp/cli/actions/workflows/tests.yml)
 [![Build](https://github.com/CodeInputCorp/cli/actions/workflows/build.yml/badge.svg)](https://github.com/CodeInputCorp/cli/actions/workflows/build.yml)
 
-`codeinput` is a powerful CLI tool for parsing, analyzing, and managing CODEOWNERS files across your repositories. It provides advanced querying capabilities, ownership analysis, and tag-based file organization.
+`codeinput` is a CLI tool for parsing, analyzing, and managing CODEOWNERS files across your repository. It provides advanced querying capabilities, ownership analysis, and tag-based file organization.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Features](#features)
-  - [CodeOwners](#codeowners)
+  - [CodeOwners](#codeowners-features)
 - [Installation](#installation)
   - [Pre-built Binaries](#pre-built-binaries)
     - [Installation Instructions](#installation-instructions)
-    - [What's New in 0.0.1-beta](#whats-new-in-001-beta)
   - [From Cargo](#from-cargo)
   - [From Source](#from-source)
 - [Quick Start](#quick-start)
@@ -44,7 +44,7 @@
 
 ## Features
 
-### CodeOwners
+### CodeOwners Features
 
 - **Advanced Parsing**: Parse CODEOWNERS files recursively across directory structures
 - **Ownership Analysis**: Analyze file ownership patterns and generate detailed reports
@@ -56,15 +56,16 @@
 ## Installation
 
 <!-- RELEASE_INFO_START -->
+
 ### Pre-built Binaries
 
-**Latest Release: `0.0.1-beta`**
+**Latest Release: `0.0.4`**
 
-- **Linux x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-linux-x86_64)
-- **Linux ARM64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-linux-aarch64)
-- **Windows x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-windows-x86_64.exe)
-- **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-macos-x86_64)
-- **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-macos-aarch64)
+- **Linux x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-linux-x86_64)
+- **Linux ARM64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-linux-aarch64)
+- **Windows x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-windows-x86_64.exe)
+- **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-macos-x86_64)
+- **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-macos-aarch64)
 
 #### Installation Instructions
 
@@ -73,9 +74,6 @@
 3. Move the binary to your PATH: `mv ci /usr/local/bin/` (Linux/macOS)
 4. Make it executable: `chmod +x /usr/local/bin/ci` (Linux/macOS)
 
-#### What's New in 0.0.1-beta
-
-codeinput - 0.0.1-beta
 <!-- RELEASE_INFO_END -->
 
 ### From Cargo
@@ -93,6 +91,12 @@ git clone https://github.com/CodeInputCorp/cli.git
 cd cli
 cargo build --release --bin ci
 sudo cp target/release/ci /usr/local/bin/
+```
+
+### From NPM
+
+```bash
+npm install -g @codeinput/codeinput
 ```
 
 ## Quick Start
