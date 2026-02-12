@@ -24,7 +24,7 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: windows
             arch: aarch64
-            runner: windows-latest
+            runner: windows-11-arm
             target: aarch64-pc-windows-msvc
           - os: macos
             arch: x86_64
