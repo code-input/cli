@@ -14,19 +14,19 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
 **Table of Contents**
 
 - [Features](#features)
-  - [CodeOwners](#codeowners-features)
+  - [CodeOwners Features](#codeowners-features)
 - [Installation](#installation)
   - [Pre-built Binaries](#pre-built-binaries)
     - [Installation Instructions](#installation-instructions)
   - [From Cargo](#from-cargo)
   - [From Source](#from-source)
+  - [From NPM](#from-npm)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
-  - [CodeOwners](#codeowners-1)
+  - [CodeOwners](#codeowners)
     - [Parse CODEOWNERS](#parse-codeowners)
     - [List Files](#list-files)
     - [List Owners](#list-owners)
