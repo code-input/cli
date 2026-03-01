@@ -5,14 +5,14 @@ use crate::{
         parser::parse_codeowners,
         types::{CacheEncoding, CodeownersEntry},
     },
-    utils::{app_config::AppConfig, error::Result},
+    utils::{app_config::AppConfig, error::Result, output},
 };
 
 /// Preprocess CODEOWNERS files and build ownership map
 pub fn run(
     path: &std::path::Path, cache_file: Option<&std::path::Path>, encoding: CacheEncoding,
 ) -> Result<()> {
-    println!("Parsing CODEOWNERS files at {}", path.display());
+    output::println(&format!("Parsing CODEOWNERS files at {}", path.display()));
 
     let cache_file = match cache_file {
         Some(file) => path.join(file),
@@ -41,7 +41,7 @@ pub fn run(
     // Build the cache from the parsed CODEOWNERS entries and the files
     let hash = get_repo_hash(path)?;
 
-    let cache = build_cache(parsed_codeowners, files, hash, false)?;
+    let cache = build_cache(parsed_codeowners, files, hash)?;
 
     // Store the cache in the specified file
     store_cache(&cache, &cache_file, encoding)?;

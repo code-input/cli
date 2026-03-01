@@ -46,6 +46,10 @@ pub struct Cli {
     )]
     pub log_level: Option<LogLevel>,
 
+    /// Suppress progress output
+    #[arg(short, long)]
+    pub quiet: bool,
+
     /// Subcommands
     #[clap(subcommand)]
     command: Commands,

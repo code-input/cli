@@ -17,7 +17,10 @@ use url::Url;
 
 use crate::core::cache::sync_cache;
 use crate::core::types::{CodeownersCache, Owner, OwnerType, Tag};
-use crate::utils::error::{Error, Result};
+use crate::utils::{
+    app_config::AppConfig,
+    error::{Error, Result},
+};
 
 /// LSP Server state
 pub struct LspServer {
@@ -60,7 +63,7 @@ impl LspServer {
         let root_path = uri_to_path(&root_uri)?;
 
         // Load or create the cache
-        let cache = sync_cache(&root_path, cache_file.as_deref(), true)?;
+        let cache = sync_cache(&root_path, cache_file.as_deref())?;
 
         let state = WorkspaceState {
             cache,
@@ -123,7 +126,7 @@ impl LspServer {
 
         if let Some(state) = workspaces.get_mut(root_uri) {
             // Reload the cache
-            state.cache = sync_cache(&root_path, state.cache_file.as_deref(), true)?;
+            state.cache = sync_cache(&root_path, state.cache_file.as_deref())?;
         }
 
         Ok(())
@@ -472,6 +475,9 @@ fn is_codeowners_file(uri: &Url) -> bool {
 
 /// Run the LSP server
 pub async fn run_lsp_server() -> Result<()> {
+    // Set quiet mode for LSP (suppresses progress output)
+    AppConfig::set("quiet", "true")?;
+
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 

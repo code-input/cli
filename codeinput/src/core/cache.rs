@@ -8,7 +8,10 @@ use crate::{
             CodeownersEntryMatcher, FileEntry,
         },
     },
-    utils::error::{Error, Result},
+    utils::{
+        error::{Error, Result},
+        output,
+    },
 };
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use std::{
@@ -18,7 +21,7 @@ use std::{
 
 /// Create a cache from parsed CODEOWNERS entries and files
 pub fn build_cache(
-    entries: Vec<CodeownersEntry>, files: Vec<PathBuf>, hash: [u8; 32], quiet: bool,
+    entries: Vec<CodeownersEntry>, files: Vec<PathBuf>, hash: [u8; 32],
 ) -> Result<CodeownersCache> {
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
@@ -42,20 +45,17 @@ pub fn build_cache(
                         processed_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
 
                     // Limit filename display length and clear the line properly
-                    if !quiet {
-                        let file_display = file_path.display().to_string();
-                        let truncated_file = if file_display.len() > 60 {
-                            format!("...{}", &file_display[file_display.len() - 57..])
-                        } else {
-                            file_display
-                        };
+                    let file_display = file_path.display().to_string();
+                    let truncated_file = if file_display.len() > 60 {
+                        format!("...{}", &file_display[file_display.len() - 57..])
+                    } else {
+                        file_display
+                    };
 
-                        print!(
-                            "\r\x1b[K📁 Processing [{}/{}] {}",
-                            current, total_files, truncated_file
-                        );
-                        std::io::stdout().flush().unwrap();
-                    }
+                    output::print(&format!(
+                        "\r\x1b[K📁 Processing [{}/{}] {}",
+                        current, total_files, truncated_file
+                    ));
 
                     let (owners, tags) =
                         find_owners_and_tags_for_file(file_path, &matched_entries).unwrap();
@@ -72,9 +72,7 @@ pub fn build_cache(
         .collect();
 
     // Print newline after processing is complete
-    if !quiet {
-        println!("\r\x1b[K✅ Processed {} files successfully", total_files);
-    }
+    output::println(&format!("\r\x1b[K✅ Processed {} files successfully", total_files));
 
     // Process each owner
     let owners = collect_owners(&entries);
@@ -179,7 +177,7 @@ pub fn load_cache(path: &Path) -> Result<CodeownersCache> {
 }
 
 pub fn sync_cache(
-    repo: &std::path::Path, cache_file: Option<&std::path::Path>, quiet: bool,
+    repo: &std::path::Path, cache_file: Option<&std::path::Path>,
 ) -> Result<CodeownersCache> {
     let config_cache_file = crate::utils::app_config::AppConfig::fetch()?
         .cache_file
@@ -193,7 +191,7 @@ pub fn sync_cache(
     // Verify that the cache file exists
     if !repo.join(cache_file).exists() {
         // parse the codeowners files and build the cache
-        return parse_repo(&repo, &cache_file, quiet);
+        return parse_repo(&repo, &cache_file);
     }
 
     // Load the cache from the specified file
@@ -211,7 +209,7 @@ pub fn sync_cache(
 
     if cache_hash != current_hash {
         // parse the codeowners files and build the cache
-        return parse_repo(&repo, &cache_file, quiet);
+        return parse_repo(&repo, &cache_file);
     } else {
         return Ok(cache);
     }

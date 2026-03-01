@@ -22,7 +22,7 @@ struct RuleDisplay {
 /// Display CODEOWNERS rules from the cache
 pub fn run(format: &OutputFormat, cache_file: Option<&std::path::Path>) -> Result<()> {
     // Load the cache
-    let cache = sync_cache(std::path::Path::new("."), cache_file, false)?;
+    let cache = sync_cache(std::path::Path::new("."), cache_file)?;
 
     // Process the rules from the cache
     match format {

@@ -16,7 +16,7 @@ pub fn run(
     let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = sync_cache(repo, cache_file, false)?;
+    let cache = sync_cache(repo, cache_file)?;
 
     // Normalize the file path to be relative to the repo
     let normalized_file_path = if file_path.is_absolute() {

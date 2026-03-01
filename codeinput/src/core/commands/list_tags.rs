@@ -23,7 +23,7 @@ pub fn run(
     let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = sync_cache(repo, cache_file, false)?;
+    let cache = sync_cache(repo, cache_file)?;
 
     // Sort tags by number of files they're associated with (descending)
     let mut tags_with_counts: Vec<_> = cache.tags_map.iter().collect();
