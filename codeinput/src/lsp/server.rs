@@ -88,20 +88,13 @@ impl LspServer {
             // Check if file is within this workspace
             if let Ok(relative_path) = file_path.strip_prefix(&root_path) {
                 // Cache stores relative paths like "./main.go"
-                // Convert our relative path to match cache format
-                let relative_str = relative_path.to_string_lossy();
-                let with_dot_slash = PathBuf::from(".").join(&relative_path);
+                let cache_path = PathBuf::from(".").join(relative_path);
 
                 if let Some(file_entry) = state
                     .cache
                     .files
                     .iter()
-                    .find(|f| {
-                        // Match against both "./file" and "file" formats
-                        f.path == relative_path ||
-                        f.path == with_dot_slash ||
-                        f.path.to_string_lossy() == relative_str
-                    })
+                    .find(|f| f.path == cache_path)
                 {
                     return Some(FileOwnershipInfo {
                         path: relative_path.to_path_buf(),
