@@ -16,6 +16,9 @@ use codeinput::utils::app_config::AppConfig;
 use codeinput::utils::error::Result;
 use codeinput::utils::types::LogLevel;
 
+#[cfg(feature = "lsp")]
+use codeinput::lsp::server::run_lsp_server;
+
 #[derive(Parser, Debug)]
 #[command(
     name = "codeinput",
@@ -76,6 +79,17 @@ enum Commands {
         long_about = None,
     )]
     Config,
+    #[cfg(feature = "lsp")]
+    #[clap(
+        name = "lsp",
+        about = "Start LSP server for IDE integration",
+        long_about = "Starts a Language Server Protocol (LSP) server that provides CODEOWNERS information to supported editors"
+    )]
+    Lsp {
+        /// Use stdio for LSP communication (passed by VS Code)
+        #[arg(long, hide = true)]
+        stdio: bool,
+    },
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
@@ -279,6 +293,13 @@ pub fn cli_match() -> Result<()> {
             }
         }
         Commands::Config => commands::config::run()?,
+        #[cfg(feature = "lsp")]
+        Commands::Lsp { stdio: _ } => {
+            let rt = tokio::runtime::Runtime::new()?;
+            rt.block_on(async {
+                run_lsp_server().await
+            })?;
+        }
     }
 
     Ok(())

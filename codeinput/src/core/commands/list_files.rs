@@ -28,7 +28,7 @@ pub fn run(
     let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = sync_cache(repo, cache_file)?;
+    let cache = sync_cache(repo, cache_file, false)?;
 
     // Filter files based on criteria
     let filtered_files = cache

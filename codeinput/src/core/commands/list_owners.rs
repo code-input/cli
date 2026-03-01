@@ -25,7 +25,7 @@ pub fn run(
     let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = sync_cache(repo, cache_file)?;
+    let cache = sync_cache(repo, cache_file, false)?;
 
     // Sort owners by number of files they own (descending)
     let mut owners_with_counts: Vec<_> = cache.owners_map.iter().collect();

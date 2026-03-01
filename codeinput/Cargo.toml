@@ -57,6 +57,9 @@ full = [
 	"clap",
 	"chrono",
 	"utoipa",
+	"tower-lsp",
+	"tokio",
+	"url",
 ]
 nightly = []
 termlog = ["slog-term"]
@@ -93,6 +96,9 @@ tabled = { workspace = true, optional = true }
 terminal_size = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 chrono = { version = "0.4.41", features = ["serde"], optional = true }
+tower-lsp = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 slog-journald = { version = "2.2.0", optional = true }

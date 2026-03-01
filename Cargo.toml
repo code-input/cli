@@ -31,6 +31,9 @@ tabled = "0.20.0"
 terminal_size = "0.4.2"
 clap = { version = "4.5.40", features = ["cargo", "derive"] }
 chrono = { version = "0.4.41", features = ["serde"] }
+tower-lsp = "0.20"
+tokio = { version = "1", features = ["full"] }
+url = "2.5"
 
 # Dev dependencies
 assert_cmd = "2.0.17"

@@ -41,7 +41,7 @@ pub fn run(
     // Build the cache from the parsed CODEOWNERS entries and the files
     let hash = get_repo_hash(path)?;
 
-    let cache = build_cache(parsed_codeowners, files, hash)?;
+    let cache = build_cache(parsed_codeowners, files, hash, false)?;
 
     // Store the cache in the specified file
     store_cache(&cache, &cache_file, encoding)?;
