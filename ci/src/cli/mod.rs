@@ -16,8 +16,6 @@ use codeinput::utils::app_config::AppConfig;
 use codeinput::utils::error::Result;
 use codeinput::utils::types::LogLevel;
 
-#[cfg(feature = "lsp")]
-use codeinput::lsp::server::run_lsp_server;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -294,12 +292,7 @@ pub fn cli_match() -> Result<()> {
         }
         Commands::Config => commands::config::run()?,
         #[cfg(feature = "lsp")]
-        Commands::Lsp { stdio: _ } => {
-            let rt = tokio::runtime::Runtime::new()?;
-            rt.block_on(async {
-                run_lsp_server().await
-            })?;
-        }
+        Commands::Lsp { stdio: _ } => commands::lsp::run()?,
     }
 
     Ok(())

@@ -57,8 +57,6 @@ full = [
 	"clap",
 	"chrono",
 	"utoipa",
-	"tower-lsp",
-	"tokio",
 	"url",
 ]
 nightly = []
