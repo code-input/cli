@@ -17,10 +17,7 @@ use url::Url;
 
 use crate::core::cache::sync_cache;
 use crate::core::types::{CodeownersCache, Owner, OwnerType, Tag};
-use crate::utils::{
-    app_config::AppConfig,
-    error::{Error, Result},
-};
+use crate::utils::error::{Error, Result};
 
 /// LSP Server state
 pub struct LspServer {
@@ -468,9 +465,6 @@ fn is_codeowners_file(uri: &Url) -> bool {
 
 /// Run the LSP server
 pub async fn run_lsp_server() -> Result<()> {
-    // Set quiet mode for LSP (suppresses progress output)
-    AppConfig::set("quiet", "true")?;
-
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 

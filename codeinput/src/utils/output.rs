@@ -1,6 +1,8 @@
 //! Output utilities for CLI progress and status messages
+//!
+//! All output goes to stderr to keep stdout clean for data/LSP protocol.
 
-use std::io::Write;
+use std::io::{stderr, Write};
 
 use super::app_config::AppConfig;
 
@@ -9,17 +11,18 @@ fn is_quiet() -> bool {
     AppConfig::fetch().map(|c| c.quiet).unwrap_or(false)
 }
 
-/// Print a message if not in quiet mode
+/// Print a message to stderr if not in quiet mode
 pub fn print(msg: &str) {
     if !is_quiet() {
-        print!("{}", msg);
-        std::io::stdout().flush().ok();
+        let mut stderr = stderr();
+        write!(stderr, "{}", msg).ok();
+        stderr.flush().ok();
     }
 }
 
-/// Print a line if not in quiet mode
+/// Print a line to stderr if not in quiet mode
 pub fn println(msg: &str) {
     if !is_quiet() {
-        println!("{}", msg);
+        writeln!(stderr(), "{}", msg).ok();
     }
 }
