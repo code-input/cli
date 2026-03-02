@@ -116,85 +116,25 @@ jobs:
         with:
           path: artifacts
 
-      - name: Remove Same Release
-        uses: omarabid-forks/action-rollback@stable
-        continue-on-error: true
-        with:
-          tag: ${{ steps.vars.outputs.package_version }}
+      - name: Create Release and Upload Assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.vars.outputs.package_version }}
+          PACKAGE_NAME: ${{ steps.vars.outputs.package_name }}
+        run: |
+          # Delete existing release if exists
+          gh release delete "$TAG" --yes || true
 
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.vars.outputs.package_version }}
-          release_name: Version ${{ steps.vars.outputs.package_version }}
-          body: ${{ steps.vars.outputs.package_name }} - ${{ steps.vars.outputs.package_version }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Linux x86_64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-linux-x86_64/ci
-          asset_name: ci-linux-x86_64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Linux aarch64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-linux-aarch64/ci
-          asset_name: ci-linux-aarch64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Windows x86_64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-windows-x86_64.exe/ci.exe
-          asset_name: ci-windows-x86_64.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Windows aarch64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-windows-aarch64.exe/ci.exe
-          asset_name: ci-windows-aarch64.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload macOS x86_64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-macos-x86_64/ci
-          asset_name: ci-macos-x86_64
-          asset_content_type: application/octet-stream
-
-      - name: Upload macOS aarch64 binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: artifacts/ci-macos-aarch64/ci
-          asset_name: ci-macos-aarch64
-          asset_content_type: application/octet-stream
+          # Create release
+          gh release create "$TAG" \
+            --title "Version $TAG" \
+            --notes "$PACKAGE_NAME - $TAG" \
+            artifacts/ci-linux-x86_64/ci \
+            artifacts/ci-linux-aarch64/ci \
+            artifacts/ci-windows-x86_64.exe/ci.exe \
+            artifacts/ci-windows-aarch64.exe/ci.exe \
+            artifacts/ci-macos-x86_64/ci \
+            artifacts/ci-macos-aarch64/ci
 
       - name: Purge artifacts
         uses: omarabid-forks/purge-artifacts@v1
