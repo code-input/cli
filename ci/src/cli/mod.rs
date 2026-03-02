@@ -87,7 +87,15 @@ enum Commands {
         about = "Start LSP server for IDE integration",
         long_about = "Starts a Language Server Protocol (LSP) server that provides CODEOWNERS information to supported editors"
     )]
-    Lsp,
+    Lsp {
+        /// Use stdio for communication (default, flag exists for client compatibility)
+        #[arg(long, hide = true)]
+        stdio: bool,
+
+        /// Port for TCP communication (if not specified, uses stdio)
+        #[arg(long, value_name = "PORT")]
+        port: Option<u16>,
+    },
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
@@ -292,7 +300,7 @@ pub fn cli_match() -> Result<()> {
         }
         Commands::Config => commands::config::run()?,
         #[cfg(feature = "lsp")]
-        Commands::Lsp => commands::lsp::run()?,
+        Commands::Lsp { port, .. } => commands::lsp::run(*port)?,
     }
 
     Ok(())

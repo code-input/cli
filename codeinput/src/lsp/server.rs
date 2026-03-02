@@ -474,7 +474,7 @@ fn is_codeowners_file(uri: &Url) -> bool {
     path.contains("CODEOWNERS") || path.contains("codeowners")
 }
 
-/// Run the LSP server
+/// Run the LSP server over stdio
 pub async fn run_lsp_server() -> Result<()> {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
@@ -484,4 +484,22 @@ pub async fn run_lsp_server() -> Result<()> {
     tower_lsp::Server::new(stdin, stdout, socket).serve(service).await;
 
     Ok(())
+}
+
+/// Run the LSP server over TCP
+pub async fn run_lsp_server_tcp(port: u16) -> Result<()> {
+    use tokio::net::TcpListener;
+
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = TcpListener::bind(&addr).await?;
+
+    eprintln!("LSP server listening on {}", addr);
+
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let (read, write) = tokio::io::split(stream);
+        let (service, socket) = tower_lsp::LspService::new(|client| LspServer::new(client));
+
+        tokio::spawn(tower_lsp::Server::new(read, write, socket).serve(service));
+    }
 }
