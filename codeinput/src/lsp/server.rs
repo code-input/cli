@@ -362,21 +362,25 @@ impl LanguageServer for LspServer {
                     .collect::<Vec<_>>()
                     .join(", ");
 
-                lenses.push(CodeLens {
-                    range: Range {
-                        start: Position::new(0, 0),
-                        end: Position::new(0, 0),
-                    },
-                    command: Some(Command {
-                        title: format!("$(organization)  {}", owners_str),
-                        command: "codeinput.showOwners".to_string(),
-                        arguments: Some(vec![
-                            serde_json::to_value(file_uri.to_string()).unwrap(),
-                            serde_json::to_value(info.owners).unwrap(),
-                        ]),
-                    }),
-                    data: None,
-                });
+                // Safely serialize arguments
+                let args = (
+                    serde_json::to_value(file_uri.to_string()).ok(),
+                    serde_json::to_value(&info.owners).ok(),
+                );
+                if let (Some(uri_val), Some(owners_val)) = args {
+                    lenses.push(CodeLens {
+                        range: Range {
+                            start: Position::new(0, 0),
+                            end: Position::new(0, 0),
+                        },
+                        command: Some(Command {
+                            title: format!("$(organization)  {}", owners_str),
+                            command: "codeinput.showOwners".to_string(),
+                            arguments: Some(vec![uri_val, owners_val]),
+                        }),
+                        data: None,
+                    });
+                }
             }
 
             // Add tags CodeLens if any
@@ -388,37 +392,44 @@ impl LanguageServer for LspServer {
                     .collect::<Vec<_>>()
                     .join(", ");
 
-                lenses.push(CodeLens {
-                    range: Range {
-                        start: Position::new(0, 0),
-                        end: Position::new(0, 0),
-                    },
-                    command: Some(Command {
-                        title: format!("$(tag)  {}", tags_str),
-                        command: "codeinput.showTags".to_string(),
-                        arguments: Some(vec![
-                            serde_json::to_value(file_uri.to_string()).unwrap(),
-                            serde_json::to_value(info.tags).unwrap(),
-                        ]),
-                    }),
-                    data: None,
-                });
+                // Safely serialize arguments
+                let args = (
+                    serde_json::to_value(file_uri.to_string()).ok(),
+                    serde_json::to_value(&info.tags).ok(),
+                );
+                if let (Some(uri_val), Some(tags_val)) = args {
+                    lenses.push(CodeLens {
+                        range: Range {
+                            start: Position::new(0, 0),
+                            end: Position::new(0, 0),
+                        },
+                        command: Some(Command {
+                            title: format!("$(tag)  {}", tags_str),
+                            command: "codeinput.showTags".to_string(),
+                            arguments: Some(vec![uri_val, tags_val]),
+                        }),
+                        data: None,
+                    });
+                }
             }
 
             // Add unowned warning CodeLens
             if info.is_unowned {
-                lenses.push(CodeLens {
-                    range: Range {
-                        start: Position::new(0, 0),
-                        end: Position::new(0, 0),
-                    },
-                    command: Some(Command {
-                        title: "$(warning)  Unowned file".to_string(),
-                        command: "codeinput.addOwner".to_string(),
-                        arguments: Some(vec![serde_json::to_value(file_uri.to_string()).unwrap()]),
-                    }),
-                    data: None,
-                });
+                // Safely serialize arguments
+                if let Some(uri_val) = serde_json::to_value(file_uri.to_string()).ok() {
+                    lenses.push(CodeLens {
+                        range: Range {
+                            start: Position::new(0, 0),
+                            end: Position::new(0, 0),
+                        },
+                        command: Some(Command {
+                            title: "$(warning)  Unowned file".to_string(),
+                            command: "codeinput.addOwner".to_string(),
+                            arguments: Some(vec![uri_val]),
+                        }),
+                        data: None,
+                    });
+                }
             }
 
             return Ok(Some(lenses));
