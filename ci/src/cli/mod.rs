@@ -87,11 +87,7 @@ enum Commands {
         about = "Start LSP server for IDE integration",
         long_about = "Starts a Language Server Protocol (LSP) server that provides CODEOWNERS information to supported editors"
     )]
-    Lsp {
-        /// Use stdio for LSP communication (passed by VS Code)
-        #[arg(long, hide = true)]
-        stdio: bool,
-    },
+    Lsp,
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
@@ -296,7 +292,7 @@ pub fn cli_match() -> Result<()> {
         }
         Commands::Config => commands::config::run()?,
         #[cfg(feature = "lsp")]
-        Commands::Lsp { stdio: _ } => commands::lsp::run()?,
+        Commands::Lsp => commands::lsp::run()?,
     }
 
     Ok(())
