@@ -28,6 +28,7 @@ fn normalize_codeowners_pattern(pattern: &str) -> String {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CodeownersEntry {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     pub source_file: PathBuf,
     pub line_number: usize,
     pub pattern: String,
@@ -163,6 +164,7 @@ impl std::fmt::Display for OutputFormat {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct FileEntry {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     pub path: PathBuf,
     pub owners: Vec<Owner>,
     pub tags: Vec<Tag>,
@@ -176,7 +178,9 @@ pub struct CodeownersCache {
     pub entries: Vec<CodeownersEntry>,
     pub files: Vec<FileEntry>,
     // Derived data for lookups
+    #[cfg_attr(feature = "utoipa", schema(value_type = std::collections::HashMap<Owner, Vec<String>>))]
     pub owners_map: std::collections::HashMap<Owner, Vec<PathBuf>>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = std::collections::HashMap<Tag, Vec<String>>))]
     pub tags_map: std::collections::HashMap<Tag, Vec<PathBuf>>,
 }
 
