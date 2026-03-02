@@ -1,0 +1,17 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+.gitignore
+.yarnrc
+.yarnrc.yml
+.yarn/
+.pnp.cjs
+.pnp.loader.mjs
+yarn.lock
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+*.vsix

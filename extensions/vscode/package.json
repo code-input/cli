@@ -1,0 +1,133 @@
+{
+  "name": "codeinput",
+  "displayName": "CodeInput - CODEOWNERS Integration",
+  "description": "LSP-based CODEOWNERS integration for VS Code",
+  "version": "0.0.1",
+  "publisher": "codeinput",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "codeowners",
+    "git",
+    "ownership",
+    "lsp"
+  ],
+  "activationEvents": [
+    "onLanguage:plaintext",
+    "workspaceContains:**/CODEOWNERS",
+    "workspaceContains:**/.github/CODEOWNERS",
+    "workspaceContains:**/.gitlab/CODEOWNERS"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeinput.showOwners",
+        "title": "Show CODEOWNERS Owners",
+        "category": "CodeInput"
+      },
+      {
+        "command": "codeinput.showTags",
+        "title": "Show CODEOWNERS Tags",
+        "category": "CodeInput"
+      },
+      {
+        "command": "codeinput.addOwner",
+        "title": "Add CODEOWNERS Entry",
+        "category": "CodeInput"
+      },
+      {
+        "command": "codeinput.refreshCache",
+        "title": "Refresh CODEOWNERS Cache",
+        "category": "CodeInput"
+      },
+      {
+        "command": "codeinput.showInfo",
+        "title": "Show CODEOWNERS Info for Current File",
+        "category": "CodeInput"
+      }
+    ],
+    "configuration": {
+      "title": "CodeInput",
+      "properties": {
+        "codeinput.binaryPath": {
+          "type": "string",
+          "default": "ci-lsp",
+          "description": "Path to the codeinput LSP server binary"
+        },
+        "codeinput.cacheFile": {
+          "type": "string",
+          "default": ".codeowners.cache",
+          "description": "Name of the cache file"
+        },
+        "codeinput.showInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CODEOWNERS info in the status bar"
+        },
+        "codeinput.showDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show diagnostics for unowned files"
+        },
+        "codeinput.lspTransport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "tcp"
+          ],
+          "default": "stdio",
+          "description": "Transport method for LSP communication"
+        },
+        "codeinput.lspPort": {
+          "type": "number",
+          "default": 8123,
+          "description": "TCP port for LSP communication (when using tcp transport)"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "codeinput.showOwners",
+          "when": "false"
+        },
+        {
+          "command": "codeinput.showTags",
+          "when": "false"
+        },
+        {
+          "command": "codeinput.addOwner",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "yarn esbuild-base --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package --no-yarn"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^8.x",
+    "typescript": "^5.x"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}
