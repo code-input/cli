@@ -17,6 +17,7 @@ pub fn setup_logging() -> Result<slog_scope::GlobalLoggerGuard> {
     // Set log level for the log crate (used by ignore and other crates)
     let config = AppConfig::fetch().unwrap_or(AppConfig {
         debug: false,
+        quiet: false,
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
     });
@@ -37,6 +38,7 @@ pub fn default_root_logger() -> Result<slog::Logger> {
     // Get configured log level
     let config = AppConfig::fetch().unwrap_or(AppConfig {
         debug: false,
+        quiet: false,
         log_level: LogLevel::Info,
         cache_file: ".codeowners.cache".to_string(),
     });

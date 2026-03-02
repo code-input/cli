@@ -16,6 +16,7 @@ use codeinput::utils::app_config::AppConfig;
 use codeinput::utils::error::Result;
 use codeinput::utils::types::LogLevel;
 
+
 #[derive(Parser, Debug)]
 #[command(
     name = "codeinput",
@@ -44,6 +45,10 @@ pub struct Cli {
         value_name = "LOG_LEVEL"
     )]
     pub log_level: Option<LogLevel>,
+
+    /// Suppress progress output
+    #[arg(short, long)]
+    pub quiet: bool,
 
     /// Subcommands
     #[clap(subcommand)]
@@ -76,6 +81,21 @@ enum Commands {
         long_about = None,
     )]
     Config,
+    #[cfg(feature = "lsp")]
+    #[clap(
+        name = "lsp",
+        about = "Start LSP server for IDE integration",
+        long_about = "Starts a Language Server Protocol (LSP) server that provides CODEOWNERS information to supported editors"
+    )]
+    Lsp {
+        /// Use stdio for communication (default, flag exists for client compatibility)
+        #[arg(long, hide = true)]
+        stdio: bool,
+
+        /// Port for TCP communication (if not specified, uses stdio)
+        #[arg(long, value_name = "PORT")]
+        port: Option<u16>,
+    },
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
@@ -279,6 +299,8 @@ pub fn cli_match() -> Result<()> {
             }
         }
         Commands::Config => commands::config::run()?,
+        #[cfg(feature = "lsp")]
+        Commands::Lsp { port, .. } => commands::lsp::run(*port)?,
     }
 
     Ok(())

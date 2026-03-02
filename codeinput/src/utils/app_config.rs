@@ -17,6 +17,7 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
+    pub quiet: bool,
     pub log_level: LogLevel,
     pub cache_file: String,
 }
@@ -54,6 +55,12 @@ impl AppConfig {
             let value: &bool = args.get_one("debug").unwrap_or(&false);
 
             AppConfig::set("debug", &value.to_string())?;
+        }
+
+        if args.contains_id("quiet") {
+            let value: &bool = args.get_one("quiet").unwrap_or(&false);
+
+            AppConfig::set("quiet", &value.to_string())?;
         }
 
         if args.contains_id("log_level") {
@@ -119,6 +126,7 @@ impl TryFrom<Config> for AppConfig {
     fn try_from(config: Config) -> Result<Self> {
         Ok(AppConfig {
             debug: config.get_bool("debug")?,
+            quiet: config.get_bool("quiet")?,
             log_level: config.get::<LogLevel>("log_level")?,
             cache_file: config.get::<String>("cache_file")?,
         })

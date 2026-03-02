@@ -8,7 +8,10 @@ use crate::{
             CodeownersEntryMatcher, FileEntry,
         },
     },
-    utils::error::{Error, Result},
+    utils::{
+        error::{Error, Result},
+        output,
+    },
 };
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use std::{
@@ -49,11 +52,10 @@ pub fn build_cache(
                         file_display
                     };
 
-                    print!(
+                    output::print(&format!(
                         "\r\x1b[K📁 Processing [{}/{}] {}",
                         current, total_files, truncated_file
-                    );
-                    std::io::stdout().flush().unwrap();
+                    ));
 
                     let (owners, tags) =
                         find_owners_and_tags_for_file(file_path, &matched_entries).unwrap();
@@ -70,7 +72,7 @@ pub fn build_cache(
         .collect();
 
     // Print newline after processing is complete
-    println!("\r\x1b[K✅ Processed {} files successfully", total_files);
+    output::println(&format!("\r\x1b[K✅ Processed {} files successfully", total_files));
 
     // Process each owner
     let owners = collect_owners(&entries);

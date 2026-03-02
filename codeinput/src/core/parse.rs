@@ -1,4 +1,7 @@
-use crate::utils::error::Result;
+use crate::utils::{
+    error::Result,
+    output,
+};
 
 use super::{
     cache::{build_cache, store_cache},
@@ -8,7 +11,7 @@ use super::{
 };
 
 pub fn parse_repo(repo: &std::path::Path, cache_file: &std::path::Path) -> Result<CodeownersCache> {
-    println!("Parsing CODEOWNERS files at {}", repo.display());
+    output::println(&format!("Parsing CODEOWNERS files at {}", repo.display()));
 
     // Collect all CODEOWNERS files in the specified path
     let codeowners_files = find_codeowners_files(repo)?;
@@ -35,7 +38,7 @@ pub fn parse_repo(repo: &std::path::Path, cache_file: &std::path::Path) -> Resul
     // Store the cache in the specified file
     store_cache(&cache, &repo.join(cache_file), CacheEncoding::Bincode)?;
 
-    println!("CODEOWNERS parsing completed successfully");
+    output::println("CODEOWNERS parsing completed successfully");
 
     Ok(cache)
 }
