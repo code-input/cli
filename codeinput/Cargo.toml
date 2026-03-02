@@ -1,9 +1,9 @@
 [package]
 name = "codeinput"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2021"
-repository = "https://github.com/CodeInputCorp/cli"
+repository = "https://github.com/code-input/cli"
 readme = "../README.md"
 license = "MIT"
 keywords = ["codeowners", "git", "parsing", "analysis", "tooling"]
