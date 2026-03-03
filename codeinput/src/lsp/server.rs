@@ -4,11 +4,17 @@
 //! - textDocument/hover: Show owners/tags when hovering over file paths
 //! - textDocument/codeLens: Display ownership information above files
 //! - textDocument/publishDiagnostics: Warn about unowned files
+//! - Custom methods:
+//!   - codeinput/listFiles: List all files with ownership info
+//!   - codeinput/listOwners: List all owners with their files
+//!   - codeinput/listTags: List all tags with their files
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::sync::RwLock;
 use tower_lsp::jsonrpc::Result as LspResult;
 use tower_lsp::lsp_types::*;
@@ -34,12 +40,39 @@ struct WorkspaceState {
 }
 
 /// Information about a file's ownership
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileOwnershipInfo {
     pub path: PathBuf,
     pub owners: Vec<Owner>,
     pub tags: Vec<Tag>,
     pub is_unowned: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListFilesResponse {
+    pub files: Vec<FileOwnershipInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OwnerInfo {
+    pub owner: Owner,
+    pub files: Vec<PathBuf>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListOwnersResponse {
+    pub owners: Vec<OwnerInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagInfo {
+    pub tag: Tag,
+    pub files: Vec<PathBuf>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListTagsResponse {
+    pub tags: Vec<TagInfo>,
 }
 
 impl LspServer {
@@ -52,20 +85,13 @@ impl LspServer {
     }
 
     /// Initialize a workspace by loading its CODEOWNERS cache
-    async fn initialize_workspace(
-        &self,
-        root_uri: Url,
-        cache_file: Option<PathBuf>,
-    ) -> Result<()> {
+    async fn initialize_workspace(&self, root_uri: Url, cache_file: Option<PathBuf>) -> Result<()> {
         let root_path = uri_to_path(&root_uri)?;
 
         // Load or create the cache
         let cache = sync_cache(&root_path, cache_file.as_deref())?;
 
-        let state = WorkspaceState {
-            cache,
-            cache_file,
-        };
+        let state = WorkspaceState { cache, cache_file };
 
         let mut workspaces = self.workspaces.write().await;
         workspaces.insert(root_uri, state);
@@ -87,20 +113,16 @@ impl LspServer {
                 // Cache stores relative paths like "./main.go"
                 let cache_path = PathBuf::from(".").join(relative_path);
 
-                if let Some(file_entry) = state
-                    .cache
-                    .files
-                    .iter()
-                    .find(|f| f.path == cache_path)
-                {
+                if let Some(file_entry) = state.cache.files.iter().find(|f| f.path == cache_path) {
                     return Some(FileOwnershipInfo {
                         path: relative_path.to_path_buf(),
                         owners: file_entry.owners.clone(),
                         tags: file_entry.tags.clone(),
                         is_unowned: file_entry.owners.is_empty()
-                            || file_entry.owners.iter().any(|o| {
-                                matches!(o.owner_type, OwnerType::Unowned)
-                            }),
+                            || file_entry
+                                .owners
+                                .iter()
+                                .any(|o| matches!(o.owner_type, OwnerType::Unowned)),
                     });
                 }
             }
@@ -209,6 +231,16 @@ impl LanguageServer for LspServer {
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 code_lens_provider: Some(CodeLensOptions {
                     resolve_provider: Some(false),
+                }),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec![
+                        "codeinput.listFiles".to_string(),
+                        "codeinput.listOwners".to_string(),
+                        "codeinput.listTags".to_string(),
+                    ],
+                    work_done_progress_options: WorkDoneProgressOptions {
+                        work_done_progress: None,
+                    },
                 }),
                 workspace: Some(WorkspaceServerCapabilities {
                     workspace_folders: Some(WorkspaceFoldersServerCapabilities {
@@ -460,6 +492,130 @@ impl LanguageServer for LspServer {
             }
         }
     }
+
+    async fn execute_command(&self, params: ExecuteCommandParams) -> LspResult<Option<Value>> {
+        fn to_value<T: Serialize>(v: T) -> LspResult<Value> {
+            serde_json::to_value(v)
+                .map_err(|e| tower_lsp::jsonrpc::Error::invalid_params(e.to_string()))
+        }
+
+        match params.command.as_str() {
+            "codeinput.listFiles" => {
+                let result = self.list_files(None).await?;
+                to_value(result).map(Some)
+            }
+            "codeinput.listOwners" => {
+                let result = self.list_owners(None).await?;
+                to_value(result).map(Some)
+            }
+            "codeinput.listTags" => {
+                let result = self.list_tags(None).await?;
+                to_value(result).map(Some)
+            }
+            _ => Err(tower_lsp::jsonrpc::Error::method_not_found()),
+        }
+    }
+}
+
+impl LspServer {
+    pub async fn list_files(&self, workspace_uri: Option<Url>) -> LspResult<ListFilesResponse> {
+        let workspaces = self.workspaces.read().await;
+
+        let files = if let Some(uri) = workspace_uri {
+            if let Some(state) = workspaces.get(&uri) {
+                Self::collect_files_from_cache(&state.cache)
+            } else {
+                Vec::new()
+            }
+        } else {
+            let mut all_files = Vec::new();
+            for state in workspaces.values() {
+                all_files.extend(Self::collect_files_from_cache(&state.cache));
+            }
+            all_files
+        };
+
+        Ok(ListFilesResponse { files })
+    }
+
+    pub async fn list_owners(&self, workspace_uri: Option<Url>) -> LspResult<ListOwnersResponse> {
+        let workspaces = self.workspaces.read().await;
+
+        let owners = if let Some(uri) = workspace_uri {
+            if let Some(state) = workspaces.get(&uri) {
+                Self::collect_owners_from_cache(&state.cache)
+            } else {
+                Vec::new()
+            }
+        } else {
+            let mut all_owners = Vec::new();
+            for state in workspaces.values() {
+                all_owners.extend(Self::collect_owners_from_cache(&state.cache));
+            }
+            all_owners
+        };
+
+        Ok(ListOwnersResponse { owners })
+    }
+
+    pub async fn list_tags(&self, workspace_uri: Option<Url>) -> LspResult<ListTagsResponse> {
+        let workspaces = self.workspaces.read().await;
+
+        let tags = if let Some(uri) = workspace_uri {
+            if let Some(state) = workspaces.get(&uri) {
+                Self::collect_tags_from_cache(&state.cache)
+            } else {
+                Vec::new()
+            }
+        } else {
+            let mut all_tags = Vec::new();
+            for state in workspaces.values() {
+                all_tags.extend(Self::collect_tags_from_cache(&state.cache));
+            }
+            all_tags
+        };
+
+        Ok(ListTagsResponse { tags })
+    }
+
+    fn collect_files_from_cache(cache: &CodeownersCache) -> Vec<FileOwnershipInfo> {
+        cache
+            .files
+            .iter()
+            .map(|entry| FileOwnershipInfo {
+                path: entry.path.clone(),
+                owners: entry.owners.clone(),
+                tags: entry.tags.clone(),
+                is_unowned: entry.owners.is_empty()
+                    || entry
+                        .owners
+                        .iter()
+                        .any(|o| matches!(o.owner_type, OwnerType::Unowned)),
+            })
+            .collect()
+    }
+
+    fn collect_owners_from_cache(cache: &CodeownersCache) -> Vec<OwnerInfo> {
+        cache
+            .owners_map
+            .iter()
+            .map(|(owner, files)| OwnerInfo {
+                owner: owner.clone(),
+                files: files.clone(),
+            })
+            .collect()
+    }
+
+    fn collect_tags_from_cache(cache: &CodeownersCache) -> Vec<TagInfo> {
+        cache
+            .tags_map
+            .iter()
+            .map(|(tag, files)| TagInfo {
+                tag: tag.clone(),
+                files: files.clone(),
+            })
+            .collect()
+    }
 }
 
 /// Convert a URL to a file path
@@ -481,7 +637,9 @@ pub async fn run_lsp_server() -> Result<()> {
 
     let (service, socket) = tower_lsp::LspService::new(|client| LspServer::new(client));
 
-    tower_lsp::Server::new(stdin, stdout, socket).serve(service).await;
+    tower_lsp::Server::new(stdin, stdout, socket)
+        .serve(service)
+        .await;
 
     Ok(())
 }
