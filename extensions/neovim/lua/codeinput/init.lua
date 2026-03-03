@@ -81,6 +81,18 @@ function M.setup(opts)
     M.refresh_cache()
   end, { desc = "Refresh CODEOWNERS cache" })
   
+  vim.api.nvim_create_user_command("CodeInputFiles", function()
+    require("codeinput.telescope").files()
+  end, { desc = "Browse all files with ownership" })
+  
+  vim.api.nvim_create_user_command("CodeInputOwners", function()
+    require("codeinput.telescope").owners()
+  end, { desc = "Browse files by owner" })
+  
+  vim.api.nvim_create_user_command("CodeInputTags", function()
+    require("codeinput.telescope").tags()
+  end, { desc = "Browse files by tag" })
+  
   vim.api.nvim_create_autocmd("BufWritePost", {
     group = lsp_group,
     pattern = "CODEOWNERS",
@@ -91,9 +103,15 @@ function M.setup(opts)
 end
 
 function M.show_info()
+  local client = M.get_client()
+  if not client then
+    vim.api.nvim_echo({{"CodeInput LSP not running", "ErrorMsg"}}, true, {})
+    return
+  end
+  
   local params = vim.lsp.util.make_position_params(0, "utf-16")
   
-  vim.lsp.buf_request(0, "textDocument/hover", params, function(err, result, ctx)
+  client.request("textDocument/hover", params, function(err, result, ctx)
     if err then
       vim.api.nvim_echo({{"Error: " .. err.message, "ErrorMsg"}}, true, {})
       return
@@ -134,7 +152,7 @@ function M.show_info()
     end
     
     vim.api.nvim_echo({{table.concat(clean_lines, " | "), "Normal"}}, true, {})
-  end)
+  end, 0)
 end
 
 function M.refresh_cache()

@@ -39,7 +39,7 @@ local function set_cached_ownership(data)
 end
 
 function M.get_status()
-  local clients = vim.lsp.get_active_clients({ name = "codeinput" })
+  local clients = vim.lsp.get_clients({ name = "codeinput" })
   if #clients == 0 then
     return ""
   end
@@ -117,6 +117,88 @@ function M.get_status()
   
   local cached_now = get_cached_ownership()
   return cached_now and cached_now.status or ""
+end
+
+function M.get_lualine_component()
+  local clients = vim.lsp.get_clients({ name = "codeinput" })
+  if #clients == 0 then
+    return ""
+  end
+  
+  local cached = get_cached_ownership()
+  if cached and cached.lualine then
+    return cached.lualine
+  end
+  
+  local params = vim.lsp.util.make_position_params(0, "utf-16")
+  
+  vim.lsp.buf_request(0, "textDocument/hover", params, function(err, result, ctx)
+    if err or not result or not result.contents then
+      set_cached_ownership({ lualine = "" })
+      return
+    end
+    
+    local is_unowned = false
+    local owners = {}
+    local tags = {}
+    
+    local contents = result.contents
+    if type(contents) == "table" then
+      if contents.kind == "markdown" then
+        contents = { contents }
+      end
+      
+      for _, item in ipairs(contents) do
+        local text = ""
+        if type(item) == "string" then
+          text = item
+        elseif item.value then
+          text = item.value
+        end
+        
+        if text:match("Owners:%s*%(none%)") then
+          is_unowned = true
+        elseif text:match("Owners:") then
+          local owner_str = text:match("%*%*Owners:%*%*%s*(.+)")
+          if owner_str and owner_str ~= "(none)" then
+            for owner in owner_str:gmatch("`([^`]+)`") do
+              table.insert(owners, owner)
+            end
+          end
+        end
+        
+        if text:match("Tags:") then
+          local tag_str = text:match("%*%*Tags:%*%*%s*(.+)")
+          if tag_str then
+            for tag in tag_str:gmatch("`#([^`]+)`") do
+              table.insert(tags, tag)
+            end
+          end
+        end
+        
+        if text:match("Warning") then
+          is_unowned = true
+        end
+      end
+    end
+    
+    local lualine_str = ""
+    if is_unowned then
+      lualine_str = "⚠️ unowned"
+    elseif #owners > 0 then
+      local owner_list = table.concat(owners, " ")
+      lualine_str = "👥 " .. owner_list
+      if #tags > 0 then
+        local tag_list = table.concat(tags, " ")
+        lualine_str = lualine_str .. " 🏷️ " .. tag_list
+      end
+    end
+    
+    set_cached_ownership({ lualine = lualine_str })
+  end)
+  
+  local cached_now = get_cached_ownership()
+  return cached_now and cached_now.lualine or ""
 end
 
 return M
