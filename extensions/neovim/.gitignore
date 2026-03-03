@@ -1,0 +1,8 @@
+*.swp
+*.swo
+*~
+.*.sw[a-z]
+.un~
+
+
+neovim

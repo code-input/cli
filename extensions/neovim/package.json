@@ -1,0 +1,17 @@
+{
+  "name": "codeinput-neovim",
+  "version": "0.1.0",
+  "description": "Minimal CODEOWNERS integration for Neovim",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeInputCorp/cli.git",
+    "directory": "extensions/neovim"
+  },
+  "keywords": [
+    "neovim",
+    "codeowners",
+    "lsp"
+  ],
+  "author": "CodeInput",
+  "license": "MIT"
+}
