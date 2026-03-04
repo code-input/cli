@@ -247,18 +247,17 @@ function show_tags_picker(tags, opts)
 end
 
 function show_files_for_owner(files, owner, opts)
+  opts = opts or {}
+  
   local file_strings = vim.tbl_map(function(f)
-    if type(f) == "table" then
-      return f[1] or vim.inspect(f)
-    else
-      return tostring(f)
-    end
+    return path_to_string(f)
   end, files)
   
   pickers.new(opts, {
     prompt_title = string.format("Files owned by %s", owner),
     finder = finders.new_table {
       results = file_strings,
+      entry_maker = require("telescope.make_entry").gen_from_file(opts),
     },
     sorter = conf.file_sorter(opts),
     previewer = conf.file_previewer(opts),
@@ -274,18 +273,17 @@ function show_files_for_owner(files, owner, opts)
 end
 
 function show_files_for_tag(files, tag, opts)
+  opts = opts or {}
+  
   local file_strings = vim.tbl_map(function(f)
-    if type(f) == "table" then
-      return f[1] or vim.inspect(f)
-    else
-      return tostring(f)
-    end
+    return path_to_string(f)
   end, files)
   
   pickers.new(opts, {
     prompt_title = string.format("Files tagged #%s", tag),
     finder = finders.new_table {
       results = file_strings,
+      entry_maker = require("telescope.make_entry").gen_from_file(opts),
     },
     sorter = conf.file_sorter(opts),
     previewer = conf.file_previewer(opts),
