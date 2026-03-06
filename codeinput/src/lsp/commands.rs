@@ -7,6 +7,13 @@ use super::server::LspServer;
 use super::types::*;
 
 impl LspServer {
+    pub async fn get_file_ownership_command(&self, uri_str: String) -> LspResult<Option<FileOwnershipInfo>> {
+        let Ok(uri) = Url::parse(&uri_str) else {
+            return Err(tower_lsp::jsonrpc::Error::invalid_params("Invalid URI"));
+        };
+        Ok(self.get_file_ownership(&uri).await)
+    }
+
     pub async fn list_files(&self, workspace_uri: Option<Url>) -> LspResult<ListFilesResponse> {
         let workspaces = self.workspaces.read().await;
 
@@ -106,4 +113,5 @@ impl LspServer {
             .collect()
     }
 }
+
 

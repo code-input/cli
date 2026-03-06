@@ -51,6 +51,7 @@ impl LanguageServer for LspServer {
                         "codeinput.listFiles".to_string(),
                         "codeinput.listOwners".to_string(),
                         "codeinput.listTags".to_string(),
+                        "codeinput.getFileOwnership".to_string(),
                     ],
                     work_done_progress_options: WorkDoneProgressOptions {
                         work_done_progress: None,
@@ -287,145 +288,73 @@ impl LanguageServer for LspServer {
     async fn inlay_hint(&self, params: InlayHintParams) -> LspResult<Option<Vec<InlayHint>>> {
         let file_uri = params.text_document.uri;
 
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("inlay_hint called for: {}", file_uri),
-            )
-            .await;
-
-        // Only show inlay hints in CODEOWNERS files
         let path = uri_to_path(&file_uri);
-        if let Ok(path) = path {
-            let file_name = path
-                .file_name()
-                .map(|n| n.to_string_lossy())
-                .unwrap_or_default();
-            self.client
-                .log_message(MessageType::INFO, format!("file_name: {}", file_name))
-                .await;
-            if file_name.to_lowercase() != "codeowners" {
-                self.client
-                    .log_message(MessageType::INFO, "Not a CODEOWNERS file, skipping")
-                    .await;
-                return Ok(None);
-            }
-        } else {
-            self.client
-                .log_message(MessageType::WARNING, "Failed to convert URI to path")
-                .await;
+        let file_path = match path {
+            Ok(p) => p,
+            Err(_) => return Ok(None),
+        };
+
+        if file_path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_lowercase() != "codeowners" {
             return Ok(None);
         }
 
         let workspaces = self.workspaces.read().await;
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Workspace count: {}", workspaces.len()),
-            )
-            .await;
 
-        // Find the workspace that contains this file
-        for (root_uri, state) in workspaces.iter() {
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!("Checking workspace: {}", root_uri),
-                )
-                .await;
-            let mut hints = vec![];
+        for (_root_uri, state) in workspaces.iter() {
+            let file_entries: Vec<_> = state.cache.entries.iter()
+                .filter(|e| e.source_file == file_path)
+                .collect();
 
-            let file_path = match uri_to_path(&file_uri) {
-                Ok(p) => p,
+            if file_entries.is_empty() {
+                continue;
+            }
+
+            // Read the CODEOWNERS file content asynchronously to get line lengths
+            let content = match tokio::fs::read_to_string(&file_path).await {
+                Ok(c) => c,
                 Err(_) => continue,
             };
 
-            // Read the CODEOWNERS file content
-            if let Ok(content) = std::fs::read_to_string(&file_path) {
-                self.client
-                    .log_message(
-                        MessageType::INFO,
-                        format!("Read CODEOWNERS file, {} lines", content.lines().count()),
-                    )
-                    .await;
-                for (line_num, line) in content.lines().enumerate() {
-                    let trimmed = line.trim();
+            let lines: Vec<&str> = content.lines().collect();
+            let mut hints = vec![];
 
-                    // Skip empty lines and comments
-                    if trimmed.is_empty() || trimmed.starts_with('#') {
-                        continue;
-                    }
+            for entry in file_entries {
+                let line_idx = if entry.line_number > 0 { entry.line_number - 1 } else { 0 };
+                let line_length = lines.get(line_idx).map(|l| l.len() as u32).unwrap_or(0);
 
-                    // Parse pattern from line
-                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
-                    if !parts.is_empty() {
-                        let pattern = parts[0];
-
-                        // Count files matching this pattern using the cache
-                        let match_count = state
-                            .cache
-                            .entries
-                            .iter()
-                            .filter(|entry| {
-                                let rel_path = entry.source_file.to_string_lossy();
-                                // Simple pattern matching
-                                if pattern == "*" {
-                                    return true;
-                                }
-                                if pattern.ends_with('/') {
-                                    let dir_pattern = &pattern[..pattern.len() - 1];
-                                    rel_path.starts_with(dir_pattern)
-                                } else if pattern.starts_with('*') {
-                                    let suffix = &pattern[1..];
-                                    rel_path.ends_with(suffix)
-                                } else if pattern.ends_with("/*") {
-                                    let prefix = &pattern[..pattern.len() - 2];
-                                    rel_path.starts_with(prefix)
-                                } else {
-                                    rel_path.contains(pattern.trim_start_matches('/'))
-                                }
-                            })
-                            .count();
-
-                        if match_count > 0 {
-                            let line_length = line.len() as u32;
-                            hints.push(InlayHint {
-                                position: Position::new(line_num as u32, line_length),
-                                label: InlayHintLabel::String(format!(
-                                    "  {} file{}",
-                                    match_count,
-                                    if match_count == 1 { "" } else { "s" }
-                                )),
-                                kind: Some(InlayHintKind::TYPE),
-                                text_edits: None,
-                                tooltip: Some(InlayHintTooltip::String(format!(
-                                    "This pattern matches {} file(s) in the repository",
-                                    match_count
-                                ))),
-                                padding_left: Some(true),
-                                padding_right: Some(false),
-                                data: None,
-                            });
-                        }
+                let matcher = crate::core::types::codeowners_entry_to_matcher(entry);
+                
+                let mut match_count = 0;
+                for file_entry in &state.cache.files {
+                    if matcher.override_matcher.matched(&file_entry.path, false).is_whitelist() {
+                        match_count += 1;
                     }
                 }
 
-                self.client
-                    .log_message(
-                        MessageType::INFO,
-                        format!("Generated {} inlay hints", hints.len()),
-                    )
-                    .await;
+                hints.push(InlayHint {
+                    position: Position::new(line_idx as u32, line_length),
+                    label: InlayHintLabel::String(format!(
+                        "  {} file{}",
+                        match_count,
+                        if match_count == 1 { "" } else { "s" }
+                    )),
+                    kind: Some(InlayHintKind::TYPE),
+                    text_edits: None,
+                    tooltip: Some(InlayHintTooltip::String(format!(
+                        "This pattern matches {} file(s) in the repository",
+                        match_count
+                    ))),
+                    padding_left: Some(true),
+                    padding_right: Some(false),
+                    data: None,
+                });
+            }
+
+            if !hints.is_empty() {
                 return Ok(Some(hints));
             }
         }
 
-        self.client
-            .log_message(
-                MessageType::WARNING,
-                "No workspace found for CODEOWNERS file",
-            )
-            .await;
         Ok(None)
     }
 
@@ -459,6 +388,13 @@ impl LanguageServer for LspServer {
         }
 
         match params.command.as_str() {
+            "codeinput.getFileOwnership" => {
+                let uri_val = params.arguments.first().and_then(|v| v.as_str()).ok_or_else(|| {
+                    tower_lsp::jsonrpc::Error::invalid_params("Expected a single URI string argument")
+                })?;
+                let result = self.get_file_ownership_command(uri_val.to_string()).await?;
+                to_value(result).map(Some)
+            }
             "codeinput.listFiles" => {
                 let result = self.list_files(None).await?;
                 to_value(result).map(Some)
