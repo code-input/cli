@@ -38,11 +38,6 @@
         "category": "CodeInput"
       },
       {
-        "command": "codeinput.addOwner",
-        "title": "Add CODEOWNERS Entry",
-        "category": "CodeInput"
-      },
-      {
         "command": "codeinput.refreshCache",
         "title": "Refresh CODEOWNERS Cache",
         "category": "CodeInput"
@@ -100,10 +95,6 @@
         },
         {
           "command": "codeinput.showTags",
-          "when": "false"
-        },
-        {
-          "command": "codeinput.addOwner",
           "when": "false"
         }
       ]

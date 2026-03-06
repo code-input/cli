@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+    ExecuteCommandRequest,
     LanguageClient,
     LanguageClientOptions,
     ServerOptions,
@@ -9,7 +10,7 @@ import {
 export interface FileOwnershipInfo {
     path: string;
     owners: Array<{ identifier: string; owner_type: string }>;
-    tags: Array<{ 0: string }>;
+    tags: string[];
     is_unowned: boolean;
 }
 
@@ -97,66 +98,20 @@ export class CodeInputClient {
             return undefined;
         }
 
-        // Use the hover request to get ownership info
         try {
-            const hover = await this.client.sendRequest('textDocument/hover', {
-                textDocument: { uri: uri.toString() },
-                position: { line: 0, character: 0 }
-            }) as any;
+            const info = await this.client.sendRequest(ExecuteCommandRequest.type, {
+                command: 'codeinput.getFileOwnership',
+                arguments: [uri.toString()]
+            }) as FileOwnershipInfo | null | undefined;
 
-            if (hover && hover.contents) {
-                // Parse hover contents to extract ownership info
-                return this.parseHoverContents(hover.contents, uri);
+            if (info) {
+                return info;
             }
         } catch (error) {
-            console.error('Error getting file ownership:', error);
+            console.error('[CodeInput Client] Error:', error);
         }
 
         return undefined;
-    }
-
-    private parseHoverContents(contents: any, uri: vscode.Uri): FileOwnershipInfo | undefined {
-        // The LSP server returns hover contents with owners and tags
-        // This is a simplified parser - in production you'd want more robust parsing
-        const info: FileOwnershipInfo = {
-            path: uri.fsPath,
-            owners: [],
-            tags: [],
-            is_unowned: false
-        };
-
-        if (Array.isArray(contents)) {
-            for (const item of contents) {
-                if (typeof item === 'string') {
-                    if (item.includes('Owners:')) {
-                        const ownersMatch = item.match(/\*\*Owners:\*\* (.+)/);
-                        if (ownersMatch) {
-                            const ownersStr = ownersMatch[1];
-                            if (ownersStr !== '(none)') {
-                                info.owners = ownersStr.split(', ').map(o => ({
-                                    identifier: o.replace(/`/g, ''),
-                                    owner_type: 'Unknown'
-                                }));
-                            }
-                        }
-                    }
-                    if (item.includes('Tags:')) {
-                        const tagsMatch = item.match(/\*\*Tags:\*\* (.+)/);
-                        if (tagsMatch) {
-                            const tagsStr = tagsMatch[1];
-                            info.tags = tagsStr.split(', ').map(t => ({
-                                0: t.replace(/`#/g, '').replace(/`/g, '')
-                            }));
-                        }
-                    }
-                    if (item.includes('Warning')) {
-                        info.is_unowned = true;
-                    }
-                }
-            }
-        }
-
-        return info;
     }
 
     public isRunning(): boolean {

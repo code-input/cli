@@ -12,7 +12,6 @@ async function checkBinary(binaryPath: string): Promise<boolean> {
         const proc = spawn(binaryPath, ['lsp', '--help']);
         proc.on('error', () => resolve(false));
         proc.on('exit', (code) => resolve(code === 0));
-        // Timeout after 2 seconds
         setTimeout(() => {
             proc.kill();
             resolve(false);
@@ -23,31 +22,19 @@ async function checkBinary(binaryPath: string): Promise<boolean> {
 export async function activate(context: vscode.ExtensionContext) {
     console.log('CodeInput extension is now active');
 
-    // Check if custom binary path is set
     const config = vscode.workspace.getConfiguration('codeinput');
-    const userBinaryPath = config.get<string>('binaryPath', 'ci-lsp');
+    const binaryPath = config.get<string>('binaryPath', 'ci-lsp');
 
     let finalBinaryPath: string | undefined;
     let binarySource = 'unknown';
 
-    // If user set a custom path, use it
-    if (userBinaryPath !== 'ci-lsp') {
-        console.log(`[CodeInput] Checking user-specified binary: ${userBinaryPath}`);
-        const exists = await checkBinary(userBinaryPath);
-        if (exists) {
-            finalBinaryPath = userBinaryPath;
-            binarySource = 'user-config';
-            console.log(`[CodeInput] Using user-specified binary: ${finalBinaryPath}`);
-        } else {
-            console.error(`[CodeInput] User-specified binary not found: ${userBinaryPath}`);
-            vscode.window.showErrorMessage(
-                `Custom binary not found: ${userBinaryPath}. Please check the path or install codeinput-lsp.`
-            );
-            return;
-        }
+    const exists = await checkBinary(binaryPath);
+    if (exists) {
+        finalBinaryPath = binaryPath;
+        binarySource = 'config';
+        console.log(`[CodeInput] Using binary from config: ${finalBinaryPath}`);
     } else {
-        // Try to download ci-lsp first
-        console.log('[CodeInput] Attempting to download ci-lsp binary...');
+        console.log(`[CodeInput] Binary not found at ${binaryPath}, attempting to download...`);
         const downloader = new BinaryDownloader(context);
         const downloadedPath = await downloader.ensureBinary();
 
@@ -56,24 +43,11 @@ export async function activate(context: vscode.ExtensionContext) {
             binarySource = 'downloaded';
             console.log(`[CodeInput] Using downloaded binary: ${finalBinaryPath}`);
         } else {
-            console.log('[CodeInput] Download failed, checking for existing ci binary with LSP support...');
-            // Download failed, check if `ci` with LSP exists
-            const ciExists = await checkBinary('ci');
-            if (ciExists) {
-                binarySource = 'fallback-ci';
-                finalBinaryPath = 'ci';
-                console.log('[CodeInput] Using fallback ci binary with LSP support');
-                vscode.window.showInformationMessage(
-                    'Using existing `ci` binary with LSP support. Consider downloading `ci-lsp` for better performance.'
-                );
-            } else {
-                // Neither works
-                console.error('[CodeInput] No usable binary found (tried downloading ci-lsp and using ci)');
-                vscode.window.showErrorMessage(
-                    'codeinput-lsp not found. Please install it: curl -L https://github.com/code-input/cli/releases/latest/download/ci-lsp-linux-x64 -o ~/bin/ci-lsp && chmod +x ~/bin/ci-lsp'
-                );
-                return;
-            }
+            console.error('[CodeInput] No usable binary found');
+            vscode.window.showErrorMessage(
+                'codeinput binary not found. Install it or set codeinput.binaryPath in settings.'
+            );
+            return;
         }
     }
 
@@ -148,20 +122,6 @@ export async function activate(context: vscode.ExtensionContext) {
             if (tags && tags.length > 0) {
                 const tagList = tags.map(t => `#${t}`).join(', ');
                 vscode.window.showInformationMessage(`Tags: ${tagList}`);
-            }
-        })
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codeinput.addOwner', async (uri: string) => {
-            const owner = await vscode.window.showInputBox({
-                prompt: 'Enter owner (e.g., @username or @org/team)',
-                placeHolder: '@username'
-            });
-
-            if (owner) {
-                vscode.window.showInformationMessage(`Would add owner ${owner} to ${uri}`);
-                // TODO: Implement adding owner to CODEOWNERS file
             }
         })
     );
