@@ -62,23 +62,22 @@ export class StatusBarManager implements vscode.Disposable {
         try {
             const info = await this.client.getFileOwnership(fileUri);
 
-            if (info) {
-                if (info.is_unowned || info.owners.length === 0) {
-                    this.statusBarItem.text = '$(alert)';
-                    this.statusBarItem.tooltip = 'No CODEOWNERS';
-                    this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-                } else {
-                    this.statusBarItem.text = '$(lock)';
-                    this.statusBarItem.tooltip = 'Has CODEOWNERS';
-                    this.statusBarItem.backgroundColor = undefined;
-                }
-                this.statusBarItem.show();
+            if (info && !info.is_unowned && info.owners.length > 0) {
+                this.statusBarItem.text = '$(lock)';
+                this.statusBarItem.tooltip = 'Has CODEOWNERS';
+                this.statusBarItem.backgroundColor = undefined;
             } else {
-                this.statusBarItem.hide();
+                this.statusBarItem.text = '$(alert)';
+                this.statusBarItem.tooltip = 'No CODEOWNERS';
+                this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
             }
+            this.statusBarItem.show();
         } catch (error) {
             console.error('Error updating status bar:', error);
-            this.statusBarItem.hide();
+            this.statusBarItem.text = '$(alert)';
+            this.statusBarItem.tooltip = 'No CODEOWNERS';
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+            this.statusBarItem.show();
         }
     }
 
