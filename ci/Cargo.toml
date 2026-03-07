@@ -1,6 +1,6 @@
 [package]
 name = "ci"
-version = "0.0.5"
+version = "0.1.0"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2021"
 repository = "https://github.com/code-input/cli"
@@ -24,7 +24,7 @@ syslog = ["codeinput/syslog"]
 lsp = ["codeinput/tower-lsp", "codeinput/tokio", "tokio"]
 
 [dependencies]
-codeinput = { version = "0.0.5", path = "../codeinput" }
+codeinput = { version = "0.1.0", path = "../codeinput" }
 human-panic = { workspace = true }
 better-panic = { workspace = true }
 log = { workspace = true }

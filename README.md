@@ -59,13 +59,13 @@
 
 ### Pre-built Binaries
 
-**Latest Release: `0.0.4`**
+**Latest Release: `0.1.0`**
 
-- **Linux x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-linux-x86_64)
-- **Linux ARM64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-linux-aarch64)
-- **Windows x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-windows-x86_64.exe)
-- **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-macos-x86_64)
-- **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.0.4/ci-macos-aarch64)
+- **Linux x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-linux-x86_64)
+- **Linux ARM64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-linux-aarch64)
+- **Windows x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-windows-x86_64.exe)
+- **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-macos-x86_64)
+- **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-macos-aarch64)
 
 #### Installation Instructions
 
