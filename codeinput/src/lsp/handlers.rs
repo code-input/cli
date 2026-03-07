@@ -1,11 +1,11 @@
 use serde::Serialize;
 use serde_json::Value;
+use tower_lsp::LanguageServer;
 use tower_lsp::jsonrpc::Result as LspResult;
 use tower_lsp::lsp_types::*;
-use tower_lsp::LanguageServer;
 use url::Url;
 
-use super::server::{is_codeowners_file, uri_to_path, LspServer};
+use super::server::{LspServer, is_codeowners_file, uri_to_path};
 
 #[tower_lsp::async_trait]
 impl LanguageServer for LspServer {
@@ -260,25 +260,6 @@ impl LanguageServer for LspServer {
                 }
             }
 
-            // Add unowned warning CodeLens
-            if info.is_unowned {
-                // Safely serialize arguments
-                if let Some(uri_val) = serde_json::to_value(file_uri.to_string()).ok() {
-                    lenses.push(CodeLens {
-                        range: Range {
-                            start: Position::new(0, 0),
-                            end: Position::new(0, 0),
-                        },
-                        command: Some(Command {
-                            title: "$(warning)  Unowned file".to_string(),
-                            command: "codeinput.addOwner".to_string(),
-                            arguments: Some(vec![uri_val]),
-                        }),
-                        data: None,
-                    });
-                }
-            }
-
             return Ok(Some(lenses));
         }
 
@@ -294,14 +275,23 @@ impl LanguageServer for LspServer {
             Err(_) => return Ok(None),
         };
 
-        if file_path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_lowercase() != "codeowners" {
+        if file_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default()
+            .to_lowercase()
+            != "codeowners"
+        {
             return Ok(None);
         }
 
         let workspaces = self.workspaces.read().await;
 
         for (_root_uri, state) in workspaces.iter() {
-            let file_entries: Vec<_> = state.cache.entries.iter()
+            let file_entries: Vec<_> = state
+                .cache
+                .entries
+                .iter()
                 .filter(|e| e.source_file == file_path)
                 .collect();
 
@@ -319,14 +309,22 @@ impl LanguageServer for LspServer {
             let mut hints = vec![];
 
             for entry in file_entries {
-                let line_idx = if entry.line_number > 0 { entry.line_number - 1 } else { 0 };
+                let line_idx = if entry.line_number > 0 {
+                    entry.line_number - 1
+                } else {
+                    0
+                };
                 let line_length = lines.get(line_idx).map(|l| l.len() as u32).unwrap_or(0);
 
                 let matcher = crate::core::types::codeowners_entry_to_matcher(entry);
-                
+
                 let mut match_count = 0;
                 for file_entry in &state.cache.files {
-                    if matcher.override_matcher.matched(&file_entry.path, false).is_whitelist() {
+                    if matcher
+                        .override_matcher
+                        .matched(&file_entry.path, false)
+                        .is_whitelist()
+                    {
                         match_count += 1;
                     }
                 }
@@ -389,9 +387,15 @@ impl LanguageServer for LspServer {
 
         match params.command.as_str() {
             "codeinput.getFileOwnership" => {
-                let uri_val = params.arguments.first().and_then(|v| v.as_str()).ok_or_else(|| {
-                    tower_lsp::jsonrpc::Error::invalid_params("Expected a single URI string argument")
-                })?;
+                let uri_val = params
+                    .arguments
+                    .first()
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| {
+                        tower_lsp::jsonrpc::Error::invalid_params(
+                            "Expected a single URI string argument",
+                        )
+                    })?;
                 let result = self.get_file_ownership_command(uri_val.to_string()).await?;
                 to_value(result).map(Some)
             }
@@ -411,4 +415,3 @@ impl LanguageServer for LspServer {
         }
     }
 }
-
