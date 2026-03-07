@@ -108,24 +108,6 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codeinput.showOwners', (uri: string, owners: any[]) => {
-            if (owners && owners.length > 0) {
-                const ownerList = owners.map(o => o.identifier).join(', ');
-                vscode.window.showInformationMessage(`Owners: ${ownerList}`);
-            }
-        })
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('codeinput.showTags', (uri: string, tags: any[]) => {
-            if (tags && tags.length > 0) {
-                const tagList = tags.map(t => `#${t}`).join(', ');
-                vscode.window.showInformationMessage(`Tags: ${tagList}`);
-            }
-        })
-    );
-
     // Handle configuration changes
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {

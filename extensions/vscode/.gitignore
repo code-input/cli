@@ -22,6 +22,7 @@ Thumbs.db
 
 # IDE
 .idea/
+.vscode/
 *.swp
 *.swo
 
@@ -31,3 +32,6 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Yarn cache
+.yarn/

@@ -2,9 +2,18 @@
   "name": "codeinput",
   "displayName": "CodeInput - CODEOWNERS Integration",
   "description": "LSP-based CODEOWNERS integration for VS Code",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "codeinput",
   "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/code-input/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/code-input/cli/issues"
+  },
+  "homepage": "https://github.com/code-input/cli#readme",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -27,16 +36,6 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "codeinput.showOwners",
-        "title": "Show CODEOWNERS Owners",
-        "category": "CodeInput"
-      },
-      {
-        "command": "codeinput.showTags",
-        "title": "Show CODEOWNERS Tags",
-        "category": "CodeInput"
-      },
       {
         "command": "codeinput.refreshCache",
         "title": "Refresh CODEOWNERS Cache",
@@ -86,18 +85,6 @@
           "description": "TCP port for LSP communication (when using tcp transport)"
         }
       }
-    },
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "codeinput.showOwners",
-          "when": "false"
-        },
-        {
-          "command": "codeinput.showTags",
-          "when": "false"
-        }
-      ]
     }
   },
   "scripts": {
