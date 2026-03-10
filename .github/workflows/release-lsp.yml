@@ -123,22 +123,34 @@ jobs:
           path: artifacts
 
       - name: Upload Linux x64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-linux-x64/ci --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-linux-x64/ci ci-lsp-linux-x64
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-linux-x64 --repo ${{ github.repository }}
 
       - name: Upload Linux arm64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-linux-arm64/ci --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-linux-arm64/ci ci-lsp-linux-arm64
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-linux-arm64 --repo ${{ github.repository }}
 
       - name: Upload Windows x64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-windows-x64.exe/ci.exe --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-windows-x64.exe/ci.exe ci-lsp-windows-x64.exe
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-windows-x64.exe --repo ${{ github.repository }}
 
       - name: Upload Windows arm64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-windows-arm64.exe/ci.exe --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-windows-arm64.exe/ci.exe ci-lsp-windows-arm64.exe
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-windows-arm64.exe --repo ${{ github.repository }}
 
       - name: Upload macOS x64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-darwin-x64/ci --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-darwin-x64/ci ci-lsp-darwin-x64
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-darwin-x64 --repo ${{ github.repository }}
 
       - name: Upload macOS arm64 binary
-        run: gh release upload ${{ needs.get-tag.outputs.tag }} artifacts/ci-lsp-darwin-arm64/ci --repo ${{ github.repository }}
+        run: |
+          cp artifacts/ci-lsp-darwin-arm64/ci ci-lsp-darwin-arm64
+          gh release upload ${{ needs.get-tag.outputs.tag }} ci-lsp-darwin-arm64 --repo ${{ github.repository }}
 
       - name: Purge artifacts
         uses: omarabid-forks/purge-artifacts@v1
