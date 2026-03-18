@@ -1,4 +1,4 @@
-use tower_lsp::jsonrpc::Result as LspResult;
+use tower_lsp_server::jsonrpc::Result as LspResult;
 use url::Url;
 
 use crate::core::types::{CodeownersCache, OwnerType};
@@ -9,7 +9,7 @@ use super::types::*;
 impl LspServer {
     pub async fn get_file_ownership_command(&self, uri_str: String) -> LspResult<Option<FileOwnershipInfo>> {
         let Ok(uri) = Url::parse(&uri_str) else {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params("Invalid URI"));
+            return Err(tower_lsp_server::jsonrpc::Error::invalid_params("Invalid URI"));
         };
         Ok(self.get_file_ownership(&uri).await)
     }

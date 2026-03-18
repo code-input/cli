@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-use tower_lsp::lsp_types::*;
-use tower_lsp::Client;
+use tower_lsp_server::ls_types::*;
+use tower_lsp_server::Client;
 use url::Url;
 
 use crate::core::cache::sync_cache;
@@ -138,8 +138,9 @@ impl LspServer {
 
             // Publish diagnostics for this workspace
             for (file_uri, file_diagnostics) in diagnostics {
+                let Ok(ls_uri) = file_uri.as_str().parse::<Uri>() else { continue; };
                 self.client
-                    .publish_diagnostics(file_uri, file_diagnostics, None)
+                    .publish_diagnostics(ls_uri, file_diagnostics, None)
                     .await;
             }
         }
@@ -163,9 +164,9 @@ pub async fn run_lsp_server() -> Result<()> {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = tower_lsp::LspService::new(|client| LspServer::new(client));
+    let (service, socket) = tower_lsp_server::LspService::new(|client| LspServer::new(client));
 
-    tower_lsp::Server::new(stdin, stdout, socket)
+    tower_lsp_server::Server::new(stdin, stdout, socket)
         .serve(service)
         .await;
 
@@ -184,8 +185,8 @@ pub async fn run_lsp_server_tcp(port: u16) -> Result<()> {
     loop {
         let (stream, _) = listener.accept().await?;
         let (read, write) = tokio::io::split(stream);
-        let (service, socket) = tower_lsp::LspService::new(|client| LspServer::new(client));
+        let (service, socket) = tower_lsp_server::LspService::new(|client| LspServer::new(client));
 
-        tokio::spawn(tower_lsp::Server::new(read, write, socket).serve(service));
+        tokio::spawn(tower_lsp_server::Server::new(read, write, socket).serve(service));
     }
 }

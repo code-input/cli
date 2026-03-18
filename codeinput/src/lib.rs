@@ -12,5 +12,5 @@ pub mod core;
 pub mod utils;
 
 // LSP server module (requires full features - not just types)
-#[cfg(all(not(feature = "types"), feature = "tokio", feature = "tower-lsp"))]
+#[cfg(all(not(feature = "types"), feature = "tokio", feature = "tower-lsp-server"))]
 pub mod lsp;

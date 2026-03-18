@@ -7,5 +7,5 @@ pub mod list_rules;
 pub mod list_tags;
 pub mod parse;
 
-#[cfg(feature = "tower-lsp")]
+#[cfg(feature = "tower-lsp-server")]
 pub mod lsp;

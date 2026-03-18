@@ -21,7 +21,7 @@ default = ["termlog"]
 termlog = ["codeinput/termlog"]
 journald = ["codeinput/journald"]
 syslog = ["codeinput/syslog"]
-lsp = ["codeinput/tower-lsp", "codeinput/tokio", "tokio"]
+lsp = ["codeinput/tower-lsp-server", "codeinput/tokio", "tokio"]
 
 [dependencies]
 codeinput = { version = "0.1.0", path = "../codeinput" }

@@ -1,20 +1,20 @@
 use serde::Serialize;
 use serde_json::Value;
-use tower_lsp::LanguageServer;
-use tower_lsp::jsonrpc::Result as LspResult;
-use tower_lsp::lsp_types::*;
+use tower_lsp_server::LanguageServer;
+use tower_lsp_server::jsonrpc::Result as LspResult;
+use tower_lsp_server::ls_types::*;
 use url::Url;
 
 use super::server::{LspServer, is_codeowners_file, uri_to_path};
 
-#[tower_lsp::async_trait]
 impl LanguageServer for LspServer {
     async fn initialize(&self, params: InitializeParams) -> LspResult<InitializeResult> {
         // Initialize workspaces from workspace folders
         let workspace_folders = params.workspace_folders.unwrap_or_default();
 
         for folder in workspace_folders {
-            if let Err(e) = self.initialize_workspace(folder.uri, None).await {
+            let Ok(uri_url) = Url::parse(folder.uri.as_str()) else { continue; };
+            if let Err(e) = self.initialize_workspace(uri_url, None).await {
                 self.client
                     .log_message(
                         MessageType::WARNING,
@@ -25,18 +25,23 @@ impl LanguageServer for LspServer {
         }
 
         // If no workspace folders, try to use root_uri
-        if let Some(root_uri) = params.root_uri {
-            if let Err(e) = self.initialize_workspace(root_uri, None).await {
-                self.client
-                    .log_message(
-                        MessageType::WARNING,
-                        format!("Failed to initialize root workspace: {}", e),
-                    )
-                    .await;
+        #[allow(deprecated)]
+        let root_uri = params.root_uri;
+        if let Some(root_uri) = root_uri {
+            if let Ok(uri_url) = Url::parse(root_uri.as_str()) {
+                if let Err(e) = self.initialize_workspace(uri_url, None).await {
+                    self.client
+                        .log_message(
+                            MessageType::WARNING,
+                            format!("Failed to initialize root workspace: {}", e),
+                        )
+                        .await;
+                }
             }
         }
 
         Ok(InitializeResult {
+            offset_encoding: None,
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
@@ -87,7 +92,7 @@ impl LanguageServer for LspServer {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        let file_uri = params.text_document.uri;
+        let Ok(file_uri) = Url::parse(params.text_document.uri.as_str()) else { return; };
 
         // Check if this is a CODEOWNERS file and refresh cache if so
         if is_codeowners_file(&file_uri) {
@@ -120,7 +125,7 @@ impl LanguageServer for LspServer {
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
-        let file_uri = params.text_document.uri;
+        let Ok(file_uri) = Url::parse(params.text_document.uri.as_str()) else { return; };
 
         // If CODEOWNERS file was saved, refresh the cache
         if is_codeowners_file(&file_uri) {
@@ -147,7 +152,7 @@ impl LanguageServer for LspServer {
     }
 
     async fn hover(&self, params: HoverParams) -> LspResult<Option<Hover>> {
-        let file_uri = params.text_document_position_params.text_document.uri;
+        let Ok(file_uri) = Url::parse(params.text_document_position_params.text_document.uri.as_str()) else { return Ok(None); };
 
         // Get ownership info for this file
         if let Some(info) = self.get_file_ownership(&file_uri).await {
@@ -194,7 +199,7 @@ impl LanguageServer for LspServer {
     }
 
     async fn code_lens(&self, params: CodeLensParams) -> LspResult<Option<Vec<CodeLens>>> {
-        let file_uri = params.text_document.uri;
+        let Ok(file_uri) = Url::parse(params.text_document.uri.as_str()) else { return Ok(None); };
 
         // Get ownership info for this file
         if let Some(info) = self.get_file_ownership(&file_uri).await {
@@ -267,7 +272,7 @@ impl LanguageServer for LspServer {
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> LspResult<Option<Vec<InlayHint>>> {
-        let file_uri = params.text_document.uri;
+        let Ok(file_uri) = Url::parse(params.text_document.uri.as_str()) else { return Ok(None); };
 
         let path = uri_to_path(&file_uri);
         let file_path = match path {
@@ -358,7 +363,7 @@ impl LanguageServer for LspServer {
 
     async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) {
         // Handle removed workspaces - collect URIs first, then remove them
-        let removed_uris: Vec<Url> = params.event.removed.iter().map(|f| f.uri.clone()).collect();
+        let removed_uris: Vec<Url> = params.event.removed.iter().filter_map(|f| Url::parse(f.uri.as_str()).ok()).collect();
         {
             let mut workspaces = self.workspaces.write().await;
             for uri in removed_uris {
@@ -368,7 +373,8 @@ impl LanguageServer for LspServer {
 
         // Handle added workspaces
         for folder in params.event.added {
-            if let Err(e) = self.initialize_workspace(folder.uri, None).await {
+            let Ok(uri_url) = Url::parse(folder.uri.as_str()) else { continue; };
+            if let Err(e) = self.initialize_workspace(uri_url, None).await {
                 self.client
                     .log_message(
                         MessageType::WARNING,
@@ -382,7 +388,7 @@ impl LanguageServer for LspServer {
     async fn execute_command(&self, params: ExecuteCommandParams) -> LspResult<Option<Value>> {
         fn to_value<T: Serialize>(v: T) -> LspResult<Value> {
             serde_json::to_value(v)
-                .map_err(|e| tower_lsp::jsonrpc::Error::invalid_params(e.to_string()))
+                .map_err(|e| tower_lsp_server::jsonrpc::Error::invalid_params(e.to_string()))
         }
 
         match params.command.as_str() {
@@ -392,7 +398,7 @@ impl LanguageServer for LspServer {
                     .first()
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| {
-                        tower_lsp::jsonrpc::Error::invalid_params(
+                        tower_lsp_server::jsonrpc::Error::invalid_params(
                             "Expected a single URI string argument",
                         )
                     })?;
@@ -411,7 +417,7 @@ impl LanguageServer for LspServer {
                 let result = self.list_tags(None).await?;
                 to_value(result).map(Some)
             }
-            _ => Err(tower_lsp::jsonrpc::Error::method_not_found()),
+            _ => Err(tower_lsp_server::jsonrpc::Error::method_not_found()),
         }
     }
 }

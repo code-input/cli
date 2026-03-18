@@ -94,7 +94,7 @@ tabled = { workspace = true, optional = true }
 terminal_size = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 chrono = { version = "0.4.44", features = ["serde"], optional = true }
-tower-lsp = { workspace = true, optional = true }
+tower-lsp-server = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
