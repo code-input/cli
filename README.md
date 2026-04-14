@@ -23,6 +23,7 @@
     - [Installation Instructions](#installation-instructions)
   - [From Cargo](#from-cargo)
   - [From Source](#from-source)
+  - [Arch Linux (AUR)](#arch-linux-aur)
   - [From NPM](#from-npm)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
