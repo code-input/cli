@@ -6,9 +6,9 @@
 </div>
 <br/>
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/CodeInputCorp/cli/blob/master/LICENSE)
-[![Tests](https://github.com/CodeInputCorp/cli/actions/workflows/tests.yml/badge.svg)](https://github.com/CodeInputCorp/cli/actions/workflows/tests.yml)
-[![Build](https://github.com/CodeInputCorp/cli/actions/workflows/build.yml/badge.svg)](https://github.com/CodeInputCorp/cli/actions/workflows/build.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/code-input/cli/blob/master/LICENSE)
+[![Tests](https://github.com/code-input/cli/actions/workflows/tests.yml/badge.svg)](https://github.com/code-input/cli/actions/workflows/tests.yml)
+[![Build](https://github.com/code-input/cli/actions/workflows/build.yml/badge.svg)](https://github.com/code-input/cli/actions/workflows/build.yml)
 
 `codeinput` is a CLI tool for parsing, analyzing, and managing CODEOWNERS files across your repository. It provides advanced querying capabilities, ownership analysis, and tag-based file organization.
 
@@ -61,11 +61,11 @@
 
 **Latest Release: `0.1.0`**
 
-- **Linux x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-linux-x86_64)
-- **Linux ARM64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-linux-aarch64)
-- **Windows x86_64**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-windows-x86_64.exe)
-- **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-macos-x86_64)
-- **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/v0.1.0/ci-macos-aarch64)
+- **Linux x86_64**: [Download](https://github.com/code-input/cli/releases/download/v0.1.0/ci-linux-x86_64)
+- **Linux ARM64**: [Download](https://github.com/code-input/cli/releases/download/v0.1.0/ci-linux-aarch64)
+- **Windows x86_64**: [Download](https://github.com/code-input/cli/releases/download/v0.1.0/ci-windows-x86_64.exe)
+- **macOS Intel**: [Download](https://github.com/code-input/cli/releases/download/v0.1.0/ci-macos-x86_64)
+- **macOS Apple Silicon**: [Download](https://github.com/code-input/cli/releases/download/v0.1.0/ci-macos-aarch64)
 
 #### Installation Instructions
 
@@ -87,7 +87,7 @@ cargo install ci
 ### From Source
 
 ```bash
-git clone https://github.com/CodeInputCorp/cli.git
+git clone https://github.com/code-input/cli.git
 cd cli
 cargo build --release --bin ci
 sudo cp target/release/ci /usr/local/bin/
