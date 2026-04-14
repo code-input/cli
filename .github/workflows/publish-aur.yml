@@ -1,0 +1,93 @@
+name: Publish to AUR
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-aur:
+    name: Publish ${{ matrix.package }} to AUR
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - package: codeinput-bin
+            subdir: codeinput-bin
+          - package: codeinput
+            subdir: codeinput
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag#v}"
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
+          echo "version=${version}" >> $GITHUB_OUTPUT
+
+      - name: Compute binary checksums
+        if: matrix.package == 'codeinput-bin'
+        id: checksums
+        run: |
+          curl -sL "https://github.com/code-input/cli/releases/download/${{ steps.version.outputs.tag }}/ci-linux-x86_64" -o ci-linux-x86_64
+          echo "sha256_x86_64=$(sha256sum ci-linux-x86_64 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          curl -sL "https://github.com/code-input/cli/releases/download/${{ steps.version.outputs.tag }}/ci-linux-aarch64" -o ci-linux-aarch64
+          echo "sha256_aarch64=$(sha256sum ci-linux-aarch64 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Compute source checksum
+        if: matrix.package == 'codeinput'
+        id: src_checksum
+        run: |
+          curl -sL "https://github.com/code-input/cli/archive/refs/tags/${{ steps.version.outputs.tag }}.tar.gz" -o source.tar.gz
+          echo "sha256=$(sha256sum source.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Update PKGBUILD
+        working-directory: dist/aur/${{ matrix.subdir }}
+        run: |
+          sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+          if [ "${{ matrix.package }}" = "codeinput-bin" ]; then
+            sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('${{ steps.checksums.outputs.sha256_x86_64 }}')/" PKGBUILD
+            sed -i "s/^sha256sums_aarch64=.*/sha256sums_aarch64=('${{ steps.checksums.outputs.sha256_aarch64 }}')/" PKGBUILD
+          else
+            sed -i "s/^sha256sums=.*/sha256sums=('${{ steps.src_checksum.outputs.sha256 }}')/" PKGBUILD
+          fi
+
+      - name: Generate .SRCINFO
+        working-directory: dist/aur/${{ matrix.subdir }}
+        run: |
+          bash "${{ github.workspace }}/.github/scripts/generate-srcinfo.sh" PKGBUILD > .SRCINFO
+
+      - name: Publish to AUR
+        env:
+          AUR_USERNAME: ${{ secrets.AUR_USERNAME }}
+          AUR_EMAIL: ${{ secrets.AUR_EMAIL }}
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          PACKAGE: ${{ matrix.package }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          cat >> ~/.ssh/config <<EOF
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            User aur
+            StrictHostKeyChecking no
+          EOF
+
+          # Clone, update, and push to AUR
+          git clone "ssh://aur@aur.archlinux.org/${PACKAGE}.git" "/tmp/${PACKAGE}"
+          cp "dist/aur/${SUBDIR}/PKGBUILD" "/tmp/${PACKAGE}/PKGBUILD"
+          cp "dist/aur/${SUBDIR}/.SRCINFO" "/tmp/${PACKAGE}/.SRCINFO"
+
+          cd "/tmp/${PACKAGE}"
+          git config user.name "$AUR_USERNAME"
+          git config user.email "$AUR_EMAIL"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to ${{ steps.version.outputs.version }}"
+          git push

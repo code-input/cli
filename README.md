@@ -93,6 +93,15 @@ cargo build --release --bin ci
 sudo cp target/release/ci /usr/local/bin/
 ```
 
+### Arch Linux (AUR)
+
+Install from the [Arch User Repository](https://aur.archlinux.org/) using an AUR helper:
+
+```bash
+yay -S codeinput       # build from source
+yay -S codeinput-bin   # pre-built binary
+```
+
 ### From NPM
 
 ```bash
