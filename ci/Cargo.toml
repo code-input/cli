@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2021"
 repository = "https://github.com/code-input/cli"
+homepage = "https://codeinput.com"
 readme = "../README.md"
 license = "MIT"
 keywords = ["cli", "codeowners", "git", "tooling", "binary"]

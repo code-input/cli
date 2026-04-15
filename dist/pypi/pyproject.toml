@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codeinput"
+version = "0.1.0"
+description = "A powerful CLI tool for parsing, analyzing, and managing CODEOWNERS files"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Abid Omar", email = "contact@omarabid.com" },
+]
+keywords = ["codeowners", "cli", "git", "github", "ownership"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://codeinput.com"
+Repository = "https://github.com/code-input/cli"
+Issues = "https://github.com/code-input/cli/issues"
+
+[project.scripts]
+ci = "codeinput.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
