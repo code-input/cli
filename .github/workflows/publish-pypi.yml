@@ -44,6 +44,9 @@ jobs:
         run: |
           sed -i "s/^version = \".*\"/version = \"${{ steps.version.outputs.version }}\"/" pyproject.toml
 
+      - name: Copy README
+        run: cp README.md dist/pypi/README.md
+
       - name: Build package
         working-directory: dist/pypi
         run: |
